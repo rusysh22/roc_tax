@@ -1,0 +1,14 @@
+node_modules
+.next
+package-lock.json
+apps/web/src/generated
+**/next-env.d.ts
+coverage
+playwright-report
+test-results
+.local-test-tools
+.local-test-db
+core_docs/01_MASTER_PROMPT.md
+core_docs/02_PRD.md
+core_docs/04_AGENT_RULES_DO_DONT.md
+core_docs/12_BATCH_PROMPTS.md

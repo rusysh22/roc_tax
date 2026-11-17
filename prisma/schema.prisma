@@ -1,0 +1,948 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../apps/web/src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlatformRole {
+  NONE
+  SUPERADMIN
+}
+
+model User {
+  id            String        @id
+  name          String
+  email         String        @unique
+  emailVerified Boolean       @default(false)
+  image         String?
+  platformRole  PlatformRole  @default(NONE)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+  sessions      Session[]
+  accounts      Account[]
+  memberships   Membership[]
+  trial         TrialAccount?
+}
+
+model Session {
+  id                   String   @id
+  expiresAt            DateTime @db.Timestamptz(3)
+  token                String   @unique
+  createdAt            DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(3)
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganizationId String?
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([identifier])
+}
+
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  PREPARER
+  REVIEWER
+  APPROVER
+}
+
+enum InvitationStatus {
+  PENDING_DELIVERY
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+model Organization {
+  id                  String                  @id @default(cuid())
+  name                String
+  legalName           String
+  createdAt           DateTime                @default(now()) @db.Timestamptz(3)
+  memberships         Membership[]
+  invitations         Invitation[]
+  auditEvents         WorkspaceAudit[]
+  companies           Company[]
+  counterparties      Counterparty[]
+  transactions        Transaction[]
+  importBatches       ImportBatch[]
+  ocrSetting          OrganizationOcrSetting?
+  ocrJobs             OcrJob[]
+  ocrCandidates       OcrCandidate[]
+  taxPolicy           OrganizationTaxPolicy?
+  taxEvaluations      TaxEvaluation[]
+  taxSnapshots        TaxEvaluationSnapshot[]
+  xmlExportBatches    XmlExportBatch[]
+  xmlExportOutcomes   XmlExportOutcome[]
+  license             OrganizationLicense?
+  supportAccessGrants SupportAccessGrant[]
+  supportAccessAudits SupportAccessAudit[]
+}
+
+model Membership {
+  id             String        @id @default(cuid())
+  organizationId String
+  userId         String
+  role           WorkspaceRole
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Invitation {
+  id             String           @id @default(cuid())
+  organizationId String
+  email          String
+  role           WorkspaceRole
+  tokenHash      String           @unique
+  invitedBy      String
+  status         InvitationStatus @default(PENDING_DELIVERY)
+  expiresAt      DateTime         @db.Timestamptz(3)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  acceptedAt     DateTime?        @db.Timestamptz(3)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, email, status])
+}
+
+model WorkspaceAudit {
+  id             String       @id @default(cuid())
+  organizationId String
+  actorId        String
+  action         String
+  targetId       String?
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+}
+
+model TrialAccount {
+  userId      String       @id
+  activatedAt DateTime     @db.Timestamptz(3)
+  expiresAt   DateTime     @db.Timestamptz(3)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  usage       TrialUsage[]
+}
+
+// Durable usage receipts intentionally have no FK to a draft or organization:
+// deleting either must never restore trial allowance.
+model TrialUsage {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  transactionId  String       @unique
+  idempotencyKey String
+  requestHash    String
+  jakartaDate    String       @db.Char(10)
+  slot           Int
+  createdAt      DateTime     @db.Timestamptz(3)
+  trial          TrialAccount @relation(fields: [userId], references: [userId], onDelete: Restrict)
+
+  @@unique([userId, jakartaDate])
+  @@unique([userId, slot])
+  @@unique([userId, idempotencyKey])
+}
+
+// ---------------------------------------------------------------------------
+// Batch 04: company tax profiles, counterparties and tax-neutral intake.
+// Tax identifiers are stored only as AES-256-GCM ciphertext plus a
+// tenant-scoped HMAC blind index (duplicate checks) and a 4-digit hint.
+// Composite (id, organizationId) foreign keys keep every child row inside
+// the same tenant at the database level.
+// ---------------------------------------------------------------------------
+
+enum CounterpartyKind {
+  VENDOR
+  CUSTOMER
+  BOTH
+}
+
+enum TaxIdentityType {
+  NPWP
+  NIK
+  FOREIGN_TIN
+  NONE
+}
+
+enum TaxFamily {
+  UNCLASSIFIED
+  PPN_FAKTUR_KELUARAN
+  PPH_UNIFIKASI_BPPU
+  PPH_UNIFIKASI_BPNR
+  PPH21_BP21
+  PPH21_BPMP
+  PPH21_BPA1
+  PPH21_BPA2
+  PPH26_BP26
+}
+
+enum TransactionDocumentType {
+  SUPPLIER_INVOICE
+  SALES_INVOICE
+}
+
+enum TransactionSource {
+  MANUAL
+  SPREADSHEET
+  OCR
+  ERP
+}
+
+enum TransactionStatus {
+  DRAFT
+  EXTRACTING
+  NEEDS_REVIEW
+  VALIDATED
+  SUBMITTED
+  CHANGES_REQUESTED
+  APPROVED
+  EXPORTED
+  CORETAX_ACCEPTED
+  CORETAX_REJECTED
+  VOIDED
+}
+
+model Company {
+  id               String           @id @default(cuid())
+  organizationId   String
+  name             String
+  legalName        String
+  npwpCipher       String?
+  npwpIndex        String?
+  npwpHint         String?          @db.VarChar(4)
+  nitkuCipher      String?
+  nitkuIndex       String?
+  nitkuHint        String?          @db.VarChar(4)
+  address          String?
+  createdBy        String
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
+  archivedAt       DateTime?        @db.Timestamptz(3)
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transactions     Transaction[]
+  xmlExportBatches XmlExportBatch[]
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, nitkuIndex])
+  @@index([organizationId, npwpIndex])
+}
+
+model Counterparty {
+  id             String           @id @default(cuid())
+  organizationId String
+  kind           CounterpartyKind
+  name           String
+  nameNormalized String
+  identityType   TaxIdentityType
+  identityCipher String?
+  identityIndex  String?
+  identityHint   String?          @db.VarChar(4)
+  countryCode    String           @db.Char(2)
+  address        String?
+  createdBy      String
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transactions   Transaction[]
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, identityType, identityIndex])
+  @@index([organizationId, nameNormalized])
+}
+
+model Transaction {
+  id                      String                  @id @default(cuid())
+  organizationId          String
+  companyId               String
+  counterpartyId          String
+  taxFamily               TaxFamily
+  documentType            TransactionDocumentType
+  source                  TransactionSource
+  status                  TransactionStatus       @default(DRAFT)
+  invoiceNumber           String
+  invoiceNumberNormalized String
+  documentDate            DateTime                @db.Date
+  taxPeriod               String                  @db.Char(7)
+  currency                String                  @db.Char(3)
+  description             String?
+  totalAmount             Decimal                 @db.Decimal(20, 2)
+  version                 Int                     @default(1)
+  createdBy               String
+  createdAt               DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime                @updatedAt @db.Timestamptz(3)
+  voidedAt                DateTime?               @db.Timestamptz(3)
+  voidReason              String?
+  lastSubmittedBy         String?
+  lastReviewedBy          String?
+  importBatchId           String?
+  organization            Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company                 Company                 @relation(fields: [companyId, organizationId], references: [id, organizationId], onDelete: NoAction)
+  counterparty            Counterparty            @relation(fields: [counterpartyId, organizationId], references: [id, organizationId], onDelete: NoAction)
+  importBatch             ImportBatch?            @relation(fields: [importBatchId, organizationId], references: [id, organizationId], onDelete: NoAction)
+  lines                   TransactionLine[]
+  documents               SourceDocument[]
+  comments                TransactionComment[]
+  events                  TransactionEvent[]
+  ocrJobs                 OcrJob[]
+  ocrCandidates           OcrCandidate[]
+  taxInput                TransactionTaxInput?
+  taxEvaluations          TaxEvaluation[]
+  taxSnapshots            TaxEvaluationSnapshot[]
+  xmlExportItems          XmlExportItem[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, invoiceNumberNormalized])
+}
+
+model TransactionLine {
+  id             String      @id @default(cuid())
+  transactionId  String
+  organizationId String
+  position       Int
+  description    String
+  quantity       Decimal     @db.Decimal(18, 4)
+  unitPrice      Decimal     @db.Decimal(20, 2)
+  amount         Decimal     @db.Decimal(20, 2)
+  transaction    Transaction @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([transactionId, position])
+}
+
+model SourceDocument {
+  id             String         @id @default(cuid())
+  organizationId String
+  transactionId  String
+  storageKey     String         @unique
+  sha256         String         @db.Char(64)
+  sizeBytes      Int
+  mimeType       String
+  originalName   String
+  scanStatus     String         @default("NOT_SCANNED")
+  uploadedBy     String
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  transaction    Transaction    @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  ocrJobs        OcrJob[]
+  ocrCandidates  OcrCandidate[]
+
+  @@unique([id, organizationId])
+  @@unique([transactionId, sha256])
+  @@index([organizationId])
+}
+
+model TransactionComment {
+  id             String      @id @default(cuid())
+  organizationId String
+  transactionId  String
+  authorId       String
+  body           String
+  createdAt      DateTime    @default(now()) @db.Timestamptz(3)
+  transaction    Transaction @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@index([transactionId, createdAt])
+}
+
+model TransactionEvent {
+  id             String      @id @default(cuid())
+  organizationId String
+  transactionId  String
+  actorId        String
+  action         String
+  changes        Json?
+  createdAt      DateTime    @default(now()) @db.Timestamptz(3)
+  transaction    Transaction @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@index([transactionId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Batch 05: spreadsheet import batches and immutable batch history.
+// Each committed import row consumes quota through Batch 02's trialService.create.
+// ---------------------------------------------------------------------------
+
+enum ImportFormat {
+  CSV
+  XLSX
+}
+
+model ImportBatch {
+  id             String        @id @default(cuid())
+  organizationId String
+  companyId      String
+  idempotencyKey String
+  requestHash    String        @db.Char(64)
+  fileName       String
+  fileSha256     String        @db.Char(64)
+  format         ImportFormat
+  totalRows      Int
+  validRows      Int
+  invalidRows    Int
+  duplicateRows  Int
+  createdCount   Int
+  transactionIds Json
+  rowSummary     Json
+  createdBy      String
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transactions   Transaction[]
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Batch 06: configurable AI OCR provider registry, tenant OCR settings,
+// asynchronous extraction jobs with retry/dead-letter, and candidate fields.
+// API keys/secrets are never persisted in the database; only env var names
+// (`secretRef`) are stored and resolved server-side.
+// ---------------------------------------------------------------------------
+
+enum OcrAdapterKey {
+  NONE
+  SYNTHETIC_TEST
+  EXTERNAL_NOT_CONFIGURED
+}
+
+enum OcrJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED_RETRYABLE
+  DEAD_LETTER
+  CANCELLED
+}
+
+model OcrProviderConfig {
+  id                      String                   @id @default(cuid())
+  slug                    String                   @unique
+  displayName             String
+  adapterKey              OcrAdapterKey
+  endpointUrl             String?
+  secretRef               String?
+  model                   String
+  region                  String
+  maxPages                Int                      @default(10)
+  timeoutMs               Int                      @default(15000)
+  monthlyPageCap          Int                      @default(500)
+  monthlySpendCapIdr      Decimal                  @default(0) @db.Decimal(20, 2)
+  estimatedCostPerPageIdr Decimal                  @default(0) @db.Decimal(20, 2)
+  retentionPolicy         String                   @default("ZERO_RETENTION_REQUIRED")
+  processorNotice         String                   @default("")
+  vendorApproved          Boolean                  @default(false)
+  enabled                 Boolean                  @default(false)
+  updatedBy               String?
+  createdAt               DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime                 @updatedAt @db.Timestamptz(3)
+  orgSettings             OrganizationOcrSetting[]
+  jobs                    OcrJob[]
+}
+
+model OrganizationOcrSetting {
+  organizationId    String             @id
+  providerId        String?
+  externalAiConsent Boolean            @default(false)
+  consentedBy       String?
+  consentedAt       DateTime?          @db.Timestamptz(3)
+  updatedBy         String
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider          OcrProviderConfig? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+}
+
+model OcrJob {
+  id               String             @id @default(cuid())
+  organizationId   String
+  transactionId    String
+  documentId       String
+  providerId       String?
+  providerSlug     String
+  adapterKey       OcrAdapterKey
+  model            String
+  region           String
+  status           OcrJobStatus       @default(QUEUED)
+  attemptCount     Int                @default(0)
+  maxAttempts      Int                @default(3)
+  nextRunAt        DateTime           @default(now()) @db.Timestamptz(3)
+  startedAt        DateTime?          @db.Timestamptz(3)
+  finishedAt       DateTime?          @db.Timestamptz(3)
+  pageCount        Int                @default(1)
+  estimatedCostIdr Decimal            @default(0) @db.Decimal(20, 2)
+  errorCode        String?
+  errorMessage     String?
+  createdBy        String
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
+  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transaction      Transaction        @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  document         SourceDocument     @relation(fields: [documentId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  provider         OcrProviderConfig? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  candidate        OcrCandidate?
+
+  @@unique([id, organizationId])
+  @@index([status, nextRunAt])
+  @@index([organizationId, createdAt])
+  @@index([transactionId, createdAt])
+}
+
+model OcrCandidate {
+  id                      String         @id @default(cuid())
+  organizationId          String
+  transactionId           String
+  documentId              String
+  jobId                   String         @unique
+  providerSlug            String
+  model                   String
+  providerVersion         String
+  extractedFields         Json
+  appliedFields           Json?
+  promptInjectionDetected Boolean        @default(false)
+  reviewedBy              String?
+  reviewedAt              DateTime?      @db.Timestamptz(3)
+  createdAt               DateTime       @default(now()) @db.Timestamptz(3)
+  organization            Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transaction             Transaction    @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  document                SourceDocument @relation(fields: [documentId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  job                     OcrJob         @relation(fields: [jobId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([jobId, organizationId])
+  @@index([transactionId, createdAt])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Batch 07: versioned effective-dated tax rules, deterministic evaluations,
+// segregation-of-duties review workflow, and immutable approval snapshots.
+// No unverified Indonesian statutory rates are pre-seeded.
+// ---------------------------------------------------------------------------
+
+enum TaxRuleStatus {
+  DRAFT
+  SME_APPROVED
+  NON_PRODUCTION_TEST
+  RETIRED
+}
+
+enum TaxRoundingMode {
+  HALF_UP
+  FLOOR
+  CEIL
+}
+
+enum SegregationPolicy {
+  STRICT_SEPARATION
+  SOLE_USER_EXCEPTION
+}
+
+model TaxRule {
+  id                          String                  @id @default(cuid())
+  code                        String
+  version                     Int
+  taxFamily                   TaxFamily
+  documentType                TransactionDocumentType
+  objectCode                  String
+  name                        String
+  jurisdiction                String                  @default("ID")
+  effectiveFrom               DateTime                @db.Date
+  effectiveTo                 DateTime?               @db.Date
+  rateNumerator               Int
+  rateDenominator             Int
+  roundingMode                TaxRoundingMode         @default(HALF_UP)
+  requireCounterpartyIdentity Boolean                 @default(true)
+  requirePayrollEvidence      Boolean                 @default(false)
+  requireTreatyEvidence       Boolean                 @default(false)
+  sourceCitation              String
+  catalogStatus               TaxRuleStatus           @default(DRAFT)
+  smeReviewedBy               String?
+  smeReviewedAt               DateTime?               @db.Timestamptz(3)
+  createdBy                   String
+  createdAt                   DateTime                @default(now()) @db.Timestamptz(3)
+  evaluations                 TaxEvaluation[]
+  snapshots                   TaxEvaluationSnapshot[]
+
+  @@unique([code, version])
+  @@index([taxFamily, catalogStatus, effectiveFrom])
+}
+
+model OrganizationTaxPolicy {
+  organizationId    String            @id
+  segregationPolicy SegregationPolicy @default(STRICT_SEPARATION)
+  updatedBy         String
+  updatedAt         DateTime          @updatedAt @db.Timestamptz(3)
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model TransactionTaxInput {
+  transactionId        String      @id
+  organizationId       String
+  objectCode           String?
+  payrollEvidenceRef   String?
+  treatyCertificateRef String?
+  treatyCountryCode    String?     @db.Char(2)
+  smeOverrideNote      String?
+  recipientTku         String?
+  taxCertificate       String      @default("N/A")
+  referenceDocType     String      @default("CommercialInvoice")
+  govTreasurerOpt      String      @default("N/A")
+  sp2dNumber           String?
+  withholdingDate      DateTime?   @db.Date
+  updatedBy            String
+  updatedAt            DateTime    @updatedAt @db.Timestamptz(3)
+  transaction          Transaction @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([transactionId, organizationId])
+}
+
+model TaxEvaluation {
+  id                 String                  @id @default(cuid())
+  organizationId     String
+  transactionId      String
+  transactionVersion Int
+  ruleId             String?
+  ruleCode           String?
+  ruleVersion        Int?
+  catalogStatus      TaxRuleStatus?
+  taxFamily          TaxFamily
+  objectCode         String?
+  dppAmount          Decimal                 @db.Decimal(20, 2)
+  taxAmount          Decimal                 @db.Decimal(20, 2)
+  rateNumerator      Int                     @default(0)
+  rateDenominator    Int                     @default(1)
+  roundingMode       TaxRoundingMode         @default(HALF_UP)
+  blockers           Json
+  evidence           Json
+  evaluatedBy        String
+  evaluatedAt        DateTime                @default(now()) @db.Timestamptz(3)
+  organization       Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transaction        Transaction             @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  rule               TaxRule?                @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  snapshots          TaxEvaluationSnapshot[]
+
+  @@unique([id, organizationId])
+  @@index([transactionId, evaluatedAt])
+}
+
+model TaxEvaluationSnapshot {
+  id                    String            @id @default(cuid())
+  organizationId        String
+  transactionId         String
+  evaluationId          String
+  transactionVersion    Int
+  ruleId                String
+  ruleCode              String
+  ruleVersion           Int
+  sourceCitation        String
+  effectiveFrom         DateTime          @db.Date
+  effectiveTo           DateTime?         @db.Date
+  taxFamily             TaxFamily
+  objectCode            String
+  dppAmount             Decimal           @db.Decimal(20, 2)
+  taxAmount             Decimal           @db.Decimal(20, 2)
+  rateNumerator         Int
+  rateDenominator       Int
+  roundingMode          TaxRoundingMode
+  evidence              Json
+  segregationPolicy     SegregationPolicy
+  soleUserExceptionUsed Boolean           @default(false)
+  submittedBy           String?
+  reviewedBy            String?
+  approvedBy            String
+  approvedAt            DateTime          @default(now()) @db.Timestamptz(3)
+  organization          Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transaction           Transaction       @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  evaluation            TaxEvaluation     @relation(fields: [evaluationId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  rule                  TaxRule           @relation(fields: [ruleId], references: [id], onDelete: Restrict)
+  xmlExportItems        XmlExportItem[]
+
+  @@unique([id, organizationId])
+  @@index([transactionId, approvedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Batch 08: official DJP XML template registry, source-verified BPPU XML
+// exports stored privately and immutably, and manual Coretax upload outcomes.
+// ---------------------------------------------------------------------------
+
+enum XmlTemplateStatus {
+  UNVERIFIED
+  VERIFIED
+  RETIRED
+}
+
+enum CoretaxOutcomeStatus {
+  CORETAX_SUBMITTED
+  CORETAX_ACCEPTED
+  CORETAX_REJECTED
+}
+
+model XmlTemplate {
+  id                String            @id @default(cuid())
+  taxFamily         TaxFamily
+  versionTag        String
+  sourceUrl         String
+  sourceLabel       String
+  sourcePublishedAt DateTime?         @db.Timestamptz(3)
+  sourceSha256      String            @db.Char(64)
+  referenceUrl      String?
+  referenceSha256   String?           @db.Char(64)
+  xsdSchemaHash     String            @db.Char(64)
+  status            XmlTemplateStatus @default(UNVERIFIED)
+  fixtureVerified   Boolean           @default(false)
+  mappingSpec       Json
+  notes             String            @default("")
+  verifiedBy        String?
+  verifiedAt        DateTime?         @db.Timestamptz(3)
+  createdBy         String
+  createdAt         DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime          @updatedAt @db.Timestamptz(3)
+  batches           XmlExportBatch[]
+
+  @@unique([taxFamily, versionTag])
+  @@index([taxFamily, status])
+}
+
+model XmlExportBatch {
+  id                 String             @id @default(cuid())
+  organizationId     String
+  companyId          String
+  templateId         String
+  taxFamily          TaxFamily
+  taxPeriod          String             @db.Char(7)
+  templateVersionTag String
+  sourceSha256       String             @db.Char(64)
+  exportVersion      Int
+  idempotencyKey     String
+  requestHash        String             @db.Char(64)
+  fileName           String
+  storageKey         String             @unique
+  xmlSha256          String             @db.Char(64)
+  sizeBytes          Int
+  itemCount          Int
+  totalDppAmount     Decimal            @db.Decimal(20, 2)
+  totalTaxAmount     Decimal            @db.Decimal(20, 2)
+  exportedBy         String
+  exportedAt         DateTime           @default(now()) @db.Timestamptz(3)
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company            Company            @relation(fields: [companyId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  template           XmlTemplate        @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  items              XmlExportItem[]
+  outcomes           XmlExportOutcome[]
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, idempotencyKey])
+  @@unique([organizationId, companyId, taxFamily, taxPeriod, exportVersion])
+  @@index([organizationId, exportedAt])
+}
+
+model XmlExportItem {
+  id                 String                @id @default(cuid())
+  organizationId     String
+  batchId            String
+  transactionId      String
+  snapshotId         String
+  transactionVersion Int
+  sequenceNo         Int
+  taxObjectCode      String
+  dppAmount          Decimal               @db.Decimal(20, 2)
+  taxAmount          Decimal               @db.Decimal(20, 2)
+  ratePercent        String
+  payloadMeta        Json
+  batch              XmlExportBatch        @relation(fields: [batchId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  transaction        Transaction           @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  snapshot           TaxEvaluationSnapshot @relation(fields: [snapshotId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([batchId, transactionId])
+  @@unique([batchId, sequenceNo])
+  @@index([transactionId])
+}
+
+model XmlExportOutcome {
+  id               String               @id @default(cuid())
+  organizationId   String
+  batchId          String
+  outcome          CoretaxOutcomeStatus
+  coretaxReference String?
+  accountHint      String?              @db.VarChar(20)
+  portalTimestamp  DateTime?            @db.Timestamptz(3)
+  evidenceSha256   String?              @db.Char(64)
+  notes            String?
+  recordedBy       String
+  recordedAt       DateTime             @default(now()) @db.Timestamptz(3)
+  organization     Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  batch            XmlExportBatch       @relation(fields: [batchId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([batchId, recordedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Batch 09: Berlanggan subscription & licensing adapter with SaaS tenant
+// compatibility gate. Secrets remain env-var refs; license keys are encrypted
+// at rest with AES-256-GCM + tenant HMAC blind index.
+// ---------------------------------------------------------------------------
+
+enum BillingAdapterMode {
+  NOT_CONFIGURED
+  SYNTHETIC_TEST
+  BERLANGGAN_LIVE
+}
+
+enum LicenseStatus {
+  NOT_CONFIGURED
+  ACTIVE
+  GRACE
+  EXPIRED
+  SUSPENDED
+  REVOKED
+  INVALID
+  SEAT_FULL
+  RATE_LIMITED
+  COMPATIBILITY_BLOCKED
+}
+
+model BillingConfig {
+  id                    String             @id @default("default")
+  adapterMode           BillingAdapterMode @default(NOT_CONFIGURED)
+  apiBaseUrl            String?
+  productSlug           String?
+  storefrontUrl         String?
+  productSecretRef      String?
+  webhookSecretRef      String?
+  ed25519PublicKey      String?
+  saasLicensingApproved Boolean            @default(false)
+  compatibilityNote     String             @default("")
+  catalogSnapshot       Json?
+  catalogFetchedAt      DateTime?          @db.Timestamptz(3)
+  updatedBy             String?
+  createdAt             DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime           @updatedAt @db.Timestamptz(3)
+}
+
+model OrganizationLicense {
+  organizationId       String        @id
+  licenseKeyCipher     String?
+  licenseKeyHint       String?       @db.VarChar(8)
+  licenseKeyIndex      String?
+  licenseKeySha256     String?       @db.Char(64)
+  fingerprint          String
+  status               LicenseStatus @default(NOT_CONFIGURED)
+  planCode             String?
+  entitlements         Json?
+  entitlementEnvelope  Json?
+  entitlementSignature String?
+  tokenExpiresAt       DateTime?     @db.Timestamptz(3)
+  licenseExpiresAt     DateTime?     @db.Timestamptz(3)
+  lastValidatedAt      DateTime?     @db.Timestamptz(3)
+  lastErrorCode        String?
+  activatedBy          String?
+  updatedBy            String
+  createdAt            DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime      @updatedAt @db.Timestamptz(3)
+  organization         Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([licenseKeyIndex])
+  @@index([licenseKeySha256])
+}
+
+model BillingWebhookEvent {
+  id             String   @id @default(cuid())
+  eventId        String   @unique
+  eventType      String
+  organizationId String?
+  licenseKeyHash String?  @db.Char(64)
+  payloadHash    String   @db.Char(64)
+  signatureValid Boolean
+  status         String
+  errorCode      String?
+  payloadSummary Json
+  receivedAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([eventType, receivedAt])
+  @@index([organizationId, receivedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Batch 10: consent-based, time-boxed & strictly audited Superadmin support
+// access grants. Superadmin cannot view customer tenant diagnostics without
+// an active owner/admin grant, and raw tax ID ciphertexts/documents stay masked.
+// ---------------------------------------------------------------------------
+
+enum SupportAccessStatus {
+  ACTIVE
+  REVOKED
+}
+
+model SupportAccessGrant {
+  id             String               @id @default(cuid())
+  organizationId String
+  grantedBy      String
+  reason         String
+  status         SupportAccessStatus  @default(ACTIVE)
+  expiresAt      DateTime             @db.Timestamptz(3)
+  revokedBy      String?
+  revokedAt      DateTime?            @db.Timestamptz(3)
+  createdAt      DateTime             @default(now()) @db.Timestamptz(3)
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  audits         SupportAccessAudit[]
+
+  @@index([organizationId, status, expiresAt])
+}
+
+model SupportAccessAudit {
+  id             String             @id @default(cuid())
+  organizationId String
+  grantId        String
+  actorId        String
+  action         String
+  reason         String
+  accessedAt     DateTime           @default(now()) @db.Timestamptz(3)
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  grant          SupportAccessGrant @relation(fields: [grantId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, accessedAt])
+  @@index([actorId, accessedAt])
+}

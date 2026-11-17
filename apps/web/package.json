@@ -1,0 +1,28 @@
+{
+  "name": "@serentax/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "node ../../scripts/start.mjs",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "@radix-ui/react-slot": "1.5.0",
+    "better-auth": "1.7.25",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "next": "16.4.6",
+    "nodemailer": "10.5.0",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1",
+    "tailwind-merge": "3.7.0",
+    "zod": "4.6.7"
+  }
+}

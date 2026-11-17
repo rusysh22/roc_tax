@@ -1,0 +1,121 @@
+import Link from "next/link";
+import type { Locale } from "@/i18n/messages";
+import { messages } from "@/i18n/messages";
+import { accountMessages } from "@/i18n/account";
+import { siteMessages } from "@/i18n/site";
+import { LocaleSwitch, ThemeToggle } from "./preferences";
+import { Button } from "@/components/ui/button";
+export function PublicShell({
+  locale,
+  children,
+}: {
+  locale: Locale;
+  children: React.ReactNode;
+}) {
+  const t = siteMessages[locale];
+  const links = [
+    { path: "features", label: t.features },
+    { path: "how-it-works", label: t.workflow },
+    { path: "pricing", label: t.pricing },
+    { path: "faq", label: t.faq },
+  ];
+  return (
+    <>
+      <a href="#content" className="skip-link">
+        {messages[locale].skip}
+      </a>
+      <header className="border-b bg-background">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-4 sm:px-8">
+          <Link
+            href={`/${locale}`}
+            className="text-2xl font-semibold tracking-tighter"
+          >
+            SerenTax<span aria-hidden="true">.</span>
+          </Link>
+          <nav
+            aria-label={t.navigation}
+            className="hidden items-center gap-6 text-sm lg:flex"
+          >
+            {links.map((link) => (
+              <Link
+                className="py-3 text-muted-foreground hover:text-foreground"
+                key={link.path}
+                href={`/${locale}/${link.path}`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            <LocaleSwitch locale={locale} />
+            <ThemeToggle locale={locale} />
+            <Button asChild className="hidden sm:inline-flex">
+              <Link href={`/${locale}/auth/sign-in`}>
+                {accountMessages[locale].signIn}
+              </Link>
+            </Button>
+          </div>
+          <details className="w-full border-t pt-2 lg:hidden">
+            <summary className="cursor-pointer py-2 text-sm font-medium">
+              {t.menu}
+            </summary>
+            <nav aria-label={t.navigation} className="grid gap-1 py-3">
+              {links.map((link) => (
+                <Link
+                  key={link.path}
+                  className="rounded-md px-3 py-3 hover:bg-muted"
+                  href={`/${locale}/${link.path}`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                className="rounded-md px-3 py-3 font-medium hover:bg-muted"
+                href={`/${locale}/auth/sign-in`}
+              >
+                {accountMessages[locale].signIn}
+              </Link>
+            </nav>
+          </details>
+        </div>
+      </header>
+      <main id="content" tabIndex={-1}>
+        {children}
+      </main>
+      <footer className="border-t bg-muted/40">
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1fr_1fr]">
+          <div>
+            <Link
+              href={`/${locale}`}
+              className="text-xl font-semibold tracking-tight"
+            >
+              SerenTax.
+            </Link>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              {messages[locale].disclaimer}
+            </p>
+          </div>
+          <nav
+            aria-label={t.footer}
+            className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm"
+          >
+            {[
+              ...links,
+              { path: "security", label: t.security },
+              { path: "terms", label: t.terms },
+              { path: "privacy", label: t.privacy },
+            ].map((link) => (
+              <Link
+                key={link.path}
+                className="py-1 underline-offset-4 hover:underline"
+                href={`/${locale}/${link.path}`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </footer>
+    </>
+  );
+}

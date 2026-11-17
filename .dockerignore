@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+**/.next
+.git
+.env*
+test-results
+playwright-report
+**/src/generated
+.local-test-tools
+.local-test-db

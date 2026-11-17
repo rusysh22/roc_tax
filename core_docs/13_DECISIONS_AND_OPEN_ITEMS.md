@@ -1,0 +1,152 @@
+# Decisions and open items
+
+## Batch 00 — 2026-11-16
+
+- Scope is the bootstrap only. Batch 01 requires a new user instruction.
+- Read all five supplied files: 01, 02, 03, 04, 12. Referenced documents 05–11 and 13 were absent; this file establishes the decision log, not replacement requirements. Architecture, design, billing, OCR/XML, security/legal and acceptance details remain pending. Bootstrap uses only explicit requirements in the supplied files.
+- Single-app npm workspace (`apps/web`) implements a modular monolith. No speculative worker or domain service is added.
+- Node 24 LTS; exact package versions and lockfile. Next 16.4.6/React 19.3.1; stable Prisma 7.10.1 instead of npm's Prisma 8 release candidate. PostgreSQL 17 and Redis 7 local containers.
+- Prisma uses its v7 generated client and pg driver adapter. No invented domain tables or migration. Database URL validation and redacted connectivity failures; lazy server-only client initialization.
+- Public health response reports liveness only. No dependency versions, connection strings, customer data, or readiness claims.
+- No auth library integration in Batch 00: library selection, session policy, tenant model and all protected routes are Batch 01 work. No protected data exists in this batch.
+- Public trial text describes the specified future policy; it does not imply signup or quota enforcement exists. Tax/OCR/XML/billing remain unavailable.
+- Locale is allowlisted; Indonesian default redirect; dictionaries include errors/loading and no remote font request. Display dates use Asia/Jakarta. Currency formatter is display-only, not tax arithmetic.
+- Docker engine unavailable locally during initial inspection. Do not claim Postgres/Redis or container runtime verified until checks succeed.
+- Repository is nested in a parent Git repository. CI must live at the actual eventual repository root; do not initialize or alter the parent repository without a deployment decision.
+- ESLint 9 was deprecated in registry metadata. ESLint 10 is used with `@eslint/js`, `typescript-eslint` and `@next/eslint-plugin-next` directly because bundled `eslint-config-next` contains plugins with ESLint 9-only peer ranges. This does not include the full React/a11y plugin presets; browser/manual accessibility review remains necessary. A scoped `@typescript-eslint/typescript-estree` minimatch 11.0.1 override fixes GHSA-g3hv-75wg-m249; lint execution validates the used integration. Remove when upstream updates its range.
+
+## Official compatibility references
+
+Checked 2026-11-16 against official docs and npm registry metadata:
+
+- https://nextjs.org/docs/app/getting-started/installation — App Router installation and Node minimum; lint is a separate command.
+- https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7 — ESM, generated client, configuration and driver adapters; Prisma 8 identified as release candidate.
+- https://ui.shadcn.com/docs/installation/manual and https://ui.shadcn.com/docs/tailwind-v4 — manual component setup and Tailwind 4/React 19 compatibility.
+- https://vitest.dev/guide/ — runner requirements; installed Vitest 5.1.0 permits Node 24 according to registry engines.
+
+## External gates remain open
+
+Berlanggan hosted SaaS licensing approval and seller configuration; genuine official DJP templates and fixtures; tax SME-approved rules; legal retention/residency/subprocessor review. Earlier memory's external findings have not been revalidated as part of this bootstrap and are not integration authorization.
+
+## Next batch
+
+03 — Design System, Marketing & Core App Shell, after review of Batch 02.
+
+## Batch 02 — 2026-11-16
+
+- User authorized Batch 02 and explicitly deferred Docker investigation. No Docker commands or repairs were attempted in this batch; reused the existing isolated native PostgreSQL test runner.
+- Trial activates explicitly once per verified account, not automatically during signup or organization creation. No workspace is required to activate; draft creation additionally requires current selected-workspace membership and `draft.prepare` permission. Owner/Admin do not bypass functional-role restrictions.
+- Database `clock_timestamp()` after acquiring locks supplies activation and quota timestamps; expiry is exactly activation + 72 hours. Jakarta local calendar dates determine daily usage. Timestamp connection sessions must be UTC; UI uses Asia/Jakarta/WIB.
+- An integration fixture revealed a genuine non-UTC connection bug: the installed Prisma pg adapter shifted timestamps when the native database defaulted to Asia/Bangkok. Centralized `postgresOptions` enforces UTC on app, scripts and test pools, preserving prior connection options and appending UTC last. A real SQL regression compares the returned instant with epoch and a known Jakarta date. Earlier synthetic test rows were cleaned up; no customer records were changed. Existing real deployments using a non-UTC database would require a separately reviewed timestamp audit, not blind data rewriting.
+- Migration `202611160002_trial_quota` creates `TrialAccount` and `TrialUsage`, an exact-duration constraint, unique account/day and idempotency keys, unique lifetime slots 1–3 and immutable-update triggers. Ledger deliberately has no foreign key to a draft or organization, so deleting either does not refund usage. Account/trial deletion is restricted while receipts exist; future erasure/retention work must reconcile this with privacy policy.
+- Atomic creation locks the organization then the user row, revalidates session, verification, active workspace and role, checks eligibility, executes the trusted persistence callback, rechecks expiration and writes receipt/audit in the same transaction. Distinct organizations serialize on the same account row. Failures roll back both persistence and quota.
+- Idempotency is account-global, bound to workspace and the server-generated normalized-payload fingerprint. Existing receipts may be replayed after expiration or draft deletion, after authorization checks; replay returns the ID only and never recreates a draft. A mismatched payload/workspace key fails. New keys after daily/lifetime/expiry limits fail closed.
+- `test_trial_draft` exists only in isolated tests and is clearly synthetic/tax-neutral. No production intake model, creation API or fake tax output was added. The persistence callback contract must be integrated by Batch 04; imports and jobs must reuse it later. Do not accept client-supplied fingerprints or perform external I/O inside the callback.
+- Dashboard exposes countdown, remaining daily/global quota, exact expiry with seconds in WIB, next daily window when it exists, and descriptive unavailable/expired/exhausted states. Countdown uses server-provided duration and monotonic browser elapsed time, with polling/focus refresh. Activation warning states that transaction intake is not yet available. No pricing or checkout URL invented; no active paid entitlement assumed.
+- Expired trials retain authorized reads/account management; trial-funded creation is blocked. Exports and paid-policy handling are not implemented in this batch.
+- PostgreSQL regression references: https://node-postgres.com/features/connecting and https://github.com/brianc/node-postgres/blob/master/packages/pg-connection-string/index.d.ts (connection options); https://github.com/prisma/orm/issues/27590 (upstream non-UTC adapter timestamp issue). Behavior was reproduced locally and fixed through connection configuration, not by trusting a source alone.
+
+## Batch 01 — 2026-11-16
+
+- User authorized the next batch. Scope is authentication/organizations/RBAC only; no trial, billing, tax, OCR or XML behavior was added.
+- Better Auth 1.7.25 officially supports the installed Next/React/Prisma versions. Configured email/password with a 12–128 character password policy, email verification before sign-in, seven-day database sessions, hourly refresh, disabled cookie cache, hashed verification identifiers, and transaction-enabled reset/revocation. SMTP is real Nodemailer delivery; local testing captures mail without external recipients. No credentials were created for a real deployment.
+- Only explicit authentication routes are exposed. Same-origin POST checks are applied at our Next boundary in addition to library defenses. An initial direct-library test returned a credential denial rather than the expected origin denial; browser tests now verify our actual route rejects foreign origins before authentication. HTTP JSON is stream-bounded and schema-validated. Auth logs are disabled to avoid token/PII leakage; production observability/redaction policy remains pending.
+- Organization row locks serialize authorization checks with membership changes. Sessions provide actor and selected workspace; request bodies cannot supply an actor or substitute a workspace for team operations. Owner/Admin manage membership; only Owner can modify privileged memberships. Functional tax roles are independent. No superadmin field, seed, or signup escalation exists.
+- Invitation links use a URL fragment (removed after reading) to keep invitation tokens out of HTTP paths/referrers. Database stores SHA-256 hashes. Tokens expire in 48 hours; invitation status and membership insertion commit together under the workspace lock. Acceptance checks verified recipient email and issuer's current role. Changed/revoked issuer roles invalidate outstanding invitations. SMTP failure revokes the invitation; a process crash during delivery requires authorized cancellation/recreation. This is documented, not represented as successful delivery.
+- Last owner cannot be removed/demoted. Workspace audit rows record actor, action, target, organization and UTC time; no update/delete API exists. Full operations audit, retention and legal policy remain later requirements.
+- Limits of 20 owned workspaces and 20 invitations/hour per issuer are abuse controls, not paid plan values. The trial quota remains unimplemented until Batch 02.
+- Production non-loopback auth requires HTTPS, authenticated SMTP and an explicit trusted ingress IP header. Deployment must overwrite that header and prevent direct application ingress. Local loopback supports HTTP and Mailpit; no production security bypass toggle exists.
+- Docker Desktop was started hidden, but its Linux engine returned HTTP 500. Installed an isolated, ignored native PostgreSQL 17.11 test runner under `.local-test-tools` and database under `.local-test-db`; the runner package has a beta label and is not an application or CI dependency. Used only synthetic data. Migration, real SQL authorization tests, and SMTP/browser acceptance passed. CI uses normal PostgreSQL 17 service containers.
+- Missing specifications 05–11, privileged-user MFA policy, commercial/legal verification and production SMTP/hosting remain open. Existing PRD requirements were used conservatively; no missing document was fabricated.
+
+### Official sources checked for Batch 01
+
+- https://better-auth.com/docs/adapters/prisma — Prisma 7 support and adapter configuration (Prisma 8 RC not supported).
+- https://better-auth.com/docs/authentication/email-password — verification, password recovery and reset/session behavior.
+- https://better-auth.com/docs/concepts/session-management — database sessions, cookie cache and session revocation.
+- https://better-auth.com/docs/concepts/rate-limit — database-backed rate limiter and trusted client-IP configuration.
+- https://better-auth.com/docs/concepts/database and https://better-auth.com/docs/reference/options — core schema, trusted origins and configuration.
+- Installed Better Auth type declarations verified `transaction: true` and `verification.storeIdentifier: 'hashed'`; npm peer metadata verified library compatibility.
+
+## Batch 03 ? 2026-11-16
+
+- Scope authorized: design system, marketing and app shell only. Docker investigation remains deferred by the user.
+- Referenced 07_DESIGN_SYSTEM.md was not supplied. Used existing monochrome tokens and explicit PRD/master requirements; this is a provisional implementation, not a claim to have matched an unavailable specification.
+- Public routes: features, how-it-works, pricing, FAQ, security, terms and privacy in both locales. All eight document families remain unavailable for export; BPPU/output invoice need source verification.
+- Pricing consumes a server-only BillingCatalogProvider contract in NOT_CONFIGURED state, with UNAVAILABLE fallback. No prices, checkout URL, credentials, catalog HTTP calls or paid entitlements invented. Actual integration remains Batch 09.
+- Terms/privacy are explicitly development placeholders pending legal review. Business identity, contact address, retention and processors remain unresolved; no contact was fabricated.
+- Protected app layout checks verified server sessions. Overview and selector reuse authenticated workspace API. Account/team screen moved to /[locale]/app/settings without changing server RBAC, origin checks or quota. Selecting a workspace reloads fresh authorized data.
+- Theme preference stores only light/dark in localStorage; inline initialization is fixed application text, never user content. Native select/details and focus indicators support keyboard use. Mobile menu uses native disclosure.
+- No dependencies, database migrations, environment keys, tax rules, uploads or transaction creation added.
+
+- Verification: 13 unit, 19 real-PostgreSQL integration, 8 public browser and 1 full auth browser test passed. Formatter, lint, typecheck and production build passed. Browser test exposed a workspace selector accessible-name issue; fixed with an explicit localized aria-label. Desktop/mobile screenshots inspected. Docker untouched.
+
+## Batch 04 — 2026-11-16
+
+- Scope authorized: company tax profiles, organization counterparties, manual tax-neutral transaction intake, duplicate checks, source document upload/viewer, comments, and basic audit. Docker investigation remains deferred.
+- Referenced specifications 05, 09, 10, and 11 remain absent. Implemented against `01_MASTER_PROMPT.md`, `02_PRD.md` (FR-003, FR-004, FR-005), `04_AGENT_RULES_DO_DONT.md`, and `12_BATCH_PROMPTS.md`.
+- Migration `202611160003_intake` adds `Company`, `Counterparty`, `Transaction`, `TransactionLine`, `SourceDocument`, `TransactionComment`, and `TransactionEvent` with composite `(id, organizationId)` foreign keys so cross-tenant child references are impossible at the database level. Database triggers block `UPDATE` on `TransactionEvent` and `TransactionComment`. The synthetic `test_trial_draft` table from Batch 02 integration tests remains out of production migrations.
+- Tax identifiers (15/16-digit NPWP, 16-digit NIK, 22-digit NITKU, foreign TIN) undergo structural format checks only; no live DJP registry verification is performed or claimed. Values are encrypted at rest with AES-256-GCM using HKDF-derived keys (`TAX_DATA_KEY`, falling back to `BETTER_AUTH_SECRET` in local development) and `organizationId:kind` AAD, paired with an HMAC-SHA256 blind index for duplicate checks and a 4-character trailing hint for display. Dedicated key rotation and KMS integration remain pre-production items.
+- Roles: `OWNER`/`ADMIN` (`team.manage`) manage `Company` profiles; `OWNER`/`ADMIN`/`PREPARER` manage `Counterparty` records; `PREPARER` (`draft.prepare`) creates, edits, voids, and attaches documents to transaction drafts; any workspace member can read tenant records and post comments. `OWNER` continues not to hold implicit `draft.prepare` or `tax.approve` privileges; sole-user Owner/Preparer ergonomics remain an open product policy item.
+- Manual draft creation calls `trialService.create` exclusively. Draft normalization, reference validation, and duplicate checks run inside the persistence callback under the organization and account locks; any validation failure or unacknowledged duplicate throws inside the callback, rolling back the transaction with zero quota consumed. Editing, commenting, attaching source documents, or voiding a draft never consumes or refunds trial quota.
+- Money and quantities use exact bigint fixed-point arithmetic (`Decimal(20,2)` and `Decimal(18,4)`). Any `quantity × unitPrice` that does not terminate at two decimal places is rejected with `LINE_PRECISION` rather than assuming an unapproved rounding rule. Currency is restricted to `IDR` until a foreign-currency exchange-rate policy (Kurs KMK) is approved.
+- Document types are restricted to `SUPPLIER_INVOICE` and `SALES_INVOICE`; debit/credit memos remain deferred until official family mappings are verified. Selectable intake families are `UNCLASSIFIED`, `PPH_UNIFIKASI_BPPU`, `PPN_FAKTUR_KELUARAN`, and `PPH_UNIFIKASI_BPNR`; `PPH21_*` and `PPH26_BP26` are locked in invoice intake per PRD FR-007.
+- Source document uploads accept only PDF, PNG, and JPEG up to 10 MB, requiring declared MIME, file extension, and magic bytes (`%PDF-`, PNG signature, `FF D8 FF`) to match. Files are stored under opaque keys outside the public web root (`DOCUMENT_STORAGE_DIR` or ignored `.local-storage/`), deduplicated per transaction by SHA-256, and served only after session + workspace membership verification with `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`, and a restrictive sandbox CSP. Malware scanning is recorded as `NOT_SCANNED` until a scanner is configured.
+- Next batch: 05 — Spreadsheet Import & Batch Preview.
+
+## Batch 05 — 2026-11-17
+
+- Scope authorized: spreadsheet import templates (`.csv`/`.xlsx`), column mapping and row-level preview, invalid-row feedback, downloadable error report, duplicate checks, import batch history, and idempotent batch commits under the Batch 02 atomic quota service.
+- Also diagnosed the host's Docker Desktop / WSL2 `HCS/ERROR_NOT_SUPPORTED` failure at the user's request: `C:\Windows\inf\setupapi.dev.log` and `HKLM\SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions` show an endpoint policy (`DenyDeviceClasses = 1`, `DenyDeviceClassesRetroactive = 1`) blocking `SCSIAdapter` (`{4d36e97b-e325-11ce-bfc1-08002be10318}`, which blocks `vhdmp.inf`) and `DiskDrive` (`{4d36e967-e325-11ce-bfc1-08002be10318}`). Per security guidelines, no endpoint policy or registry restriction was modified or bypassed; isolated native PostgreSQL 17.11 continues to run all database migrations and integration/E2E suites.
+- Migration `202611160004_spreadsheet_import` adds `ImportFormat`, `ImportBatch`, and `Transaction.importBatchId` with composite `(id, organizationId)` foreign keys and an append-only `BEFORE UPDATE` trigger on `ImportBatch`.
+- Implemented a self-contained zero-dependency CSV and OpenXML `.xlsx` parser/serializer using Node's built-in `node:zlib` instead of pulling in third-party spreadsheet packages with known advisory histories or formula-evaluation surfaces. Enforces a 2 MB upload limit, 8 MB decompressed XML limit, 64 ZIP entry limit, 200 data-row limit, 32 column limit, and rejects any XML containing `<!DOCTYPE` or `<!ENTITY` (`SPREADSHEET_UNSAFE_XML`).
+- Formula-injection defense: on import, any XLSX cell containing an `<f>` formula element or any cell whose value starts with `=`, `+`, `-`, `@`, tab, CR, or LF (including after leading whitespace) is rejected with `FORMULA_INJECTION` and never evaluated. On export (both templates and CSV error reports), cells starting with those characters are prefixed with `'`.
+- Quota enforcement before persistence: because the verified-account trial permits at most 1 new transaction per Asia/Jakarta calendar day and no paid plan is active until Batch 09, any import containing `> 1` valid row is rejected up front with `TRIAL_SINGLE_ROW_LIMIT` and explained clearly in the UI. No partial row creation or queue bypass is permitted. Single-valid-row commits execute inside `trialService.create` so organization lock, account lock, `TrialUsage` receipt, `ImportBatch`, `Transaction`, `TransactionLine`, `TransactionEvent`, and `WorkspaceAudit` commit or roll back atomically.
+- Batch idempotency is scoped to `(organizationId, idempotencyKey)` and bound to `[organizationId, companyId, fileSha256, mapping]`. Replaying the same key returns the existing `ImportBatch` and transaction ID without consuming additional quota; reusing the key with a different file, company, or mapping fails with `IDEMPOTENCY_CONFLICT`.
+- Next batch: 06 — Configurable AI OCR Provider.
+
+## Batch 06 — 2026-11-17
+
+- Scope authorized: pluggable OCR adapter with `NONE`/manual default, platform Superadmin provider registry, server-side secret references, allowed provider selection, model/region/timeout/page/spend caps, async jobs with retries/dead-letter, safe candidate fields, confidence/provenance, and side-by-side correction UI.
+- No external AI vendor credentials or approved processor contracts exist in this environment; therefore no live external AI provider adapter was enabled, and production external OCR is explicitly marked `EXTERNAL_NOT_CONFIGURED` (`NOT_CONFIGURED`). Implemented the typed `OcrAdapter` contract, `NONE` default, `EXTERNAL_NOT_CONFIGURED` fail-closed double, and `SYNTHETIC_TEST` no-egress test adapter.
+- Migrations `202611160005_ocr_provider` and `202611160006_user_platform_role` add `PlatformRole` (`NONE` default, never auto-assigned `SUPERADMIN` during signup), `OcrProviderConfig`, `OrganizationOcrSetting`, `OcrJob` (with partial unique index `OcrJob_active_document_key` limiting active jobs per document), and `OcrCandidate`. (Forward-only migration `0006` added `User.platformRole` cleanly without resetting existing test data.)
+- Secret & SSRF hygiene: `OcrProviderConfig` stores only environment variable names (`secretRef` matching `/^[A-Z][A-Z0-9_]{2,63}$/`), resolved server-side immediately before extraction and never returned in API responses or error logs. Superadmin HTTPS endpoint URLs reject HTTP, credentials, query/hash, loopback, private, link-local, and metadata IP ranges.
+- Tenant governance: workspaces default to `NONE_MANUAL`; enabling any non-`NONE` provider requires `team.manage` (`OWNER`/`ADMIN`), `provider.enabled = true`, `provider.vendorApproved = true`, and explicit `externalAiConsent` recorded with actor and UTC timestamp. OCR jobs never consume `TrialUsage` quota.
+- Prompt injection & low confidence: `normalizeCandidateFields` strips markup/control chars, detects and neutralizes prompt-injection directives (`promptInjectionDetected`), never lets AI select `taxFamily` or tax rates, and forces explicit human confirmation (`requiresVerification`) whenever Tax ID, currency, or monetary fields have `< 0.85` or `"unknown"` confidence before applying candidates to a draft.
+- Reliability & fallback: PostgreSQL-backed `OcrJob` queue uses `FOR UPDATE SKIP LOCKED`, exponential backoff (`FAILED_RETRYABLE`), `DEAD_LETTER` on fatal errors or exhausted retries (returning the transaction to `DRAFT` so manual editing continues seamlessly), manual dead-letter retry, and explicit `fallback` cancellation.
+- Next batch: 07 — Tax Classification, Rule Engine & Review Workflow.
+
+## Batch 07 — 2026-11-17
+
+- Added migration `202611160007_tax_rules_review` (`TaxRuleStatus`, `TaxRoundingMode`, `SegregationPolicy`, `TaxRule`, `OrganizationTaxPolicy`, `TransactionTaxInput`, `TaxEvaluation`, `TaxEvaluationSnapshot`, plus `Transaction.lastSubmittedBy` / `lastReviewedBy` and append-only `BEFORE UPDATE` PostgreSQL triggers on `TaxEvaluation` and `TaxEvaluationSnapshot`).
+- Kept zero unverified Indonesian statutory rates/object codes in migrations or defaults; `NON_PRODUCTION_TEST` rules carry mandatory synthetic test labeling and cannot transition transactions to `APPROVED` (`PRODUCTION_RULE_UNVERIFIED`). `SME_APPROVED` rules require explicit `smeReviewedBy`, `smeReviewedAt`, and `regulationRef`.
+- Added explicit `PPH21` payroll context and `PPH26` treaty/SKD (`Form DGT`) data gates inside both `TransactionTaxInput` and `evaluateDeterministicTax` so invoice-only transactions never silently infer withholding treatment.
+- Enforced `STRICT_SEPARATION` (approver != preparer/submitter) as default `OrganizationTaxPolicy`, permitting `SOLE_USER_EXCEPTION` only when configured by `OWNER`/`ADMIN` and acknowledged with `soleUserAck` at approval time.
+- Added controlled `APPROVED -> CHANGES_REQUESTED` reopen path in `plannedTransitions` with `reason` audit logging, revision optimistic locking, and immutable `TaxEvaluationSnapshot` preservation across later rule changes.
+- Left verified open items unchanged: real tax SME review/sign-off for statutory tax object codes, tariffs, effective dates, and rounding policies; official DJP XML templates (Batch 08); Berlanggan licensing compatibility; external OCR vendor selection & credentials; and Windows Docker Desktop WSL2 IT policy.
+- Next batch: 08 — Coretax XML Template Registry & First Verified Export.
+
+## Batch 08 — 2026-11-17
+
+- Retrieved official DJP BPPU converter and sample XML from `https://pajak.go.id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml`: `BPPU Excel to XML v.3.xlsx` (`2025-09-04T04:32:24Z`, SHA-256 `b59813365bccdf9d63a47051d4d2b0b58c53351b8c981a6f33144be05b429089`) and `bppu.zip` (`2024-12-10T03:28:34Z`, SHA-256 `8a90ea38737bd8d5f0563c12c11ec076b91138f0865ac9f46fd0d4414b004deb`, containing `bppu.xml` SHA-256 `bd52881b465315072fe3820f3f63b38b6e966d72e7da22ec94afcac1b55635e5`). Extracted `xl/xmlMaps.xml` (`Schema3`, SHA-256 `9ccf6e1b0f36cb0936d0ad5e8725bfeb0bbd61e2174553162b3c8c7c4a1019d7`) and derived the exact 15-element `Bpu` sequence, `<Rate>` percentage decimal convention, `nillable` `<SP2DNumber xsi:nil="true"/>`, and `WithholdingDate >= TaxPeriod` rule.
+- Documented DJP v.3 internal divergence between `xmlMaps.xml` `DocType` enum and `REF!F19:F32` sheet dropdowns by defaulting & restricting emission cleanly to the verified intersection (`CommercialInvoice`, `TaxInvoice`, `Contract`, `PaymentProof`, `StatementLetter`).
+- Added migration `202611160008_xml_templates_export` with `XmlTemplateStatus`, `CoretaxOutcomeStatus`, `XmlTemplate`, `XmlExportBatch`, `XmlExportItem`, `XmlExportOutcome`, immutable `BEFORE UPDATE` PostgreSQL triggers, and the single source-verified `BPPU-v3-2025-09` template entry. All 7 remaining document families fail closed with `TEMPLATE_UNVERIFIED`.
+- Added `tax.export` permission to `PREPARER`, `REVIEWER`, and `APPROVER` (retaining `OWNER`/`ADMIN` separation) and controlled `CORETAX_REJECTED -> CHANGES_REQUESTED` reopen support.
+- Left verified open items unchanged: Tax SME sign-off for statutory tax object codes/tariffs, official DJP schemas for remaining document families, Berlanggan SaaS licensing compatibility (Batch 09), external OCR vendor selection & credentials, and Windows Docker Desktop WSL2 IT policy.
+- Next batch: 09 — Berlanggan Subscription & Licensing (compatibility gate).
+
+## Batch 09 — 2026-11-17
+
+- Implemented Canonical JSON serializer (`sort_keys`, compact separators, unescaped UTF-8), Ed25519 signature verifier (`verifyBerlangganEd25519`), HMAC-SHA256 raw-body verifier (`verifyBerlangganWebhookHmac`), typed `BillingProviderAdapter` (`GET /v1/catalog/products/{slug}/plans`, `POST /v1/activate`, `/v1/validate`, `/v1/deactivate`, `/v1/operation-authorize`), and all 8 documented Berlanggan statuses (`active`, `grace`, `expired`, `suspended`, `revoked`, `invalid`, `seat_full`, `rate_limited`).
+- Direct fetch to `https://berlanggan.web.id/docs/` timed out from the development host, and `08_BILLING_BERLANGGAN.md` was not supplied; live provider endpoints, Canonical JSON, Ed25519, and `X-Berlanggan-Signature` details were cross-verified from Berlanggan documentation index references and guarded behind strict Zod schema validation at runtime.
+- Added migration `202611160009_billing_berlanggan` (`BillingAdapterMode`, `LicenseStatus`, `BillingConfig`, `OrganizationLicense`, `BillingWebhookEvent` with immutable `BEFORE UPDATE` trigger, default `NOT_CONFIGURED` / `saasLicensingApproved = false`). License keys are encrypted at rest via tenant-scoped AES-256-GCM + blind index/SHA-256; product & webhook secrets remain server-only env var names.
+- Preserved strict compatibility gate (`SAAS_LICENSING_UNAPPROVED` / `BILLING_NOT_CONFIGURED`): production SaaS paid access and public pricing plans stay disabled until Berlanggan confirms server-hosted multi-tenant licensing semantics; local account trials (`72h`, `1/Jakarta-day`, `3 total`) remain unchanged.
+- Next batch: 10 — Reconciliation, Reports & Superadmin.
+
+## Batch 10 — 2026-11-17
+
+- Added migration `202611160010_reconciliation_superadmin_support` (`CORETAX_SUBMITTED` enum value, `XmlExportOutcome` verification context fields `accountHint`, `portalTimestamp`, `evidenceSha256`, `SupportAccessStatus`, `SupportAccessGrant`, and trigger-immutable `SupportAccessAudit`).
+- Enforced strict privacy-by-default separation in `reportsService.getSuperadminOverview`: platform views expose aggregate health counts and redacted job metadata (`errorCode`, `attemptCount`, timestamps) only, with zero customer invoice text, tax IDs, or document binaries.
+- Gated `inspectTenantSupport` behind an active, non-expired `SupportAccessGrant` created by the tenant's `OWNER`/`ADMIN`, recording both immutable `SupportAccessAudit` and tenant-visible `WorkspaceAudit` entries and returning redacted status counts only.
+- Reused `serializeCsv` formula neutralization for `/api/reports/reconciliation/export` and kept all Coretax statuses explicitly labeled as manual user-recorded entries.
+- Next batch: 11 — Security/Legal Hardening & Production Readiness.
