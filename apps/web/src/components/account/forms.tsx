@@ -35,6 +35,9 @@ export async function post(path: string, body: unknown = {}) {
     body: JSON.stringify(body),
   });
   const value = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(value.code ?? "FAILED");
+  if (!response.ok)
+    throw new Error(
+      value.code ?? (response.status === 429 ? "RATE_LIMITED" : "FAILED"),
+    );
   return value;
 }

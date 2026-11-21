@@ -15,7 +15,7 @@ async function handle(request: Request, activate: boolean) {
       activate &&
       request.headers.get("origin") !== authConfiguration().origin
     )
-      return json({ code: "FORBIDDEN" }, 403);
+      return json({ code: "ORIGIN_MISMATCH" }, 403);
     const session = await getAuth().api.getSession({
       headers: request.headers,
       query: { disableCookieCache: true },
@@ -27,11 +27,12 @@ async function handle(request: Request, activate: boolean) {
     )
       return json({ code: "INVALID_INPUT" }, 400);
     const service = trialService(getDatabase());
-    return json(
-      await (activate
-        ? service.activate(session.session.id)
-        : service.snapshot(session.session.id)),
-    );
+    const snapshot = await (activate
+      ? service.activate(session.session.id)
+      : service.snapshot(session.session.id));
+    // Subscription allowance is display-only here; creation re-checks it under lock.
+    const subscription = await service.allowance(session.session.id);
+    return json({ ...snapshot, subscription });
   } catch (error) {
     if (error instanceof InvalidBody)
       return json({ code: "INVALID_INPUT" }, 400);

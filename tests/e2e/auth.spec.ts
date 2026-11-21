@@ -300,7 +300,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
       .fill("150000.00");
     await memberPage
       .getByRole("button", {
-        name: "Save draft (uses 1 trial slot)",
+        name: "Save draft (uses 1 transaction allowance)",
         exact: true,
       })
       .click();

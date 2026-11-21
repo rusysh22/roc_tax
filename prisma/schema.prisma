@@ -188,6 +188,23 @@ model TrialUsage {
   @@unique([userId, idempotencyKey])
 }
 
+// Durable, append-only receipts for transactions created under a verified
+// subscription entitlement (paid Berlanggan or SYNTHETIC_TEST license) instead
+// of the trial ledger. No FK to the draft: deleting a draft never refunds quota.
+model EntitledUsage {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  transactionId  String   @unique
+  idempotencyKey String
+  requestHash    String   @db.Char(64)
+  planCode       String?
+  createdAt      DateTime @db.Timestamptz(3)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, createdAt])
+}
+
 // ---------------------------------------------------------------------------
 // Batch 04: company tax profiles, counterparties and tax-neutral intake.
 // Tax identifiers are stored only as AES-256-GCM ciphertext plus a

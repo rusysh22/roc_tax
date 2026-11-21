@@ -28,7 +28,12 @@ import {
   type ImportRowIssue,
 } from "../../lib/intake/spreadsheet";
 import { jakartaDate, trialSnapshot } from "../trial/state";
-import { trialService } from "../trial/service";
+import {
+  entitledAllowance,
+  trialService,
+  TrialError,
+  type CreationAllowance,
+} from "../trial/service";
 import { AccessError } from "../workspaces/policy";
 import { requireActor, requireMembership } from "../workspaces/service";
 import type { TaxCrypto } from "./crypto";
@@ -81,6 +86,7 @@ export type ImportPreviewResult = {
   duplicateRows: number;
   rows: EvaluatedImportRow[];
   trial: ReturnType<typeof trialSnapshot>;
+  entitlement: CreationAllowance | null;
   eligibleToCommit: boolean;
   quotaBlockReason:
     | null
@@ -90,7 +96,9 @@ export type ImportPreviewResult = {
     | "EXPIRED"
     | "DAILY_LIMIT"
     | "TOTAL_LIMIT"
-    | "TRIAL_SINGLE_ROW_LIMIT";
+    | "TRIAL_SINGLE_ROW_LIMIT"
+    | "MONTHLY_LIMIT"
+    | "ENTITLEMENT_MISSING";
   errorReportCsv: string;
 };
 
@@ -184,6 +192,14 @@ async function evaluateSheet(
     include: { usage: { select: { jakartaDate: true } } },
   });
   const trial = trialSnapshot(now, trialRow, trialRow?.usage ?? []);
+  let entitlement: CreationAllowance | null = null;
+  let entitlementError: "ENTITLEMENT_MISSING" | null = null;
+  try {
+    entitlement = await entitledAllowance(tx, organizationId, now);
+  } catch (error) {
+    if (!(error instanceof TrialError)) throw error;
+    entitlementError = "ENTITLEMENT_MISSING";
+  }
 
   const guessed = guessColumnMapping(sheet.headers);
   const merged: Partial<Record<ImportColumn, string>> = {
@@ -516,7 +532,15 @@ async function evaluateSheet(
 
   let quotaBlockReason: ImportPreviewResult["quotaBlockReason"] = null;
   if (validRows === 0) quotaBlockReason = "NO_VALID_ROWS";
-  else if (trial.state !== "ACTIVE") quotaBlockReason = trial.state;
+  else if (entitlementError) quotaBlockReason = entitlementError;
+  else if (entitlement) {
+    // Subscription: every valid row may be committed within the monthly cap.
+    if (
+      entitlement.remainingThisMonth !== null &&
+      validRows > entitlement.remainingThisMonth
+    )
+      quotaBlockReason = "MONTHLY_LIMIT";
+  } else if (trial.state !== "ACTIVE") quotaBlockReason = trial.state;
   else if (validRows > trial.remainingToday || validRows > 1)
     quotaBlockReason = "TRIAL_SINGLE_ROW_LIMIT";
 
@@ -533,8 +557,11 @@ async function evaluateSheet(
     duplicateRows,
     rows,
     trial,
+    entitlement,
     eligibleToCommit:
-      mappingComplete && validRows === 1 && quotaBlockReason === null,
+      mappingComplete &&
+      quotaBlockReason === null &&
+      (entitlement ? validRows >= 1 : validRows === 1),
     quotaBlockReason,
     errorReportCsv: buildErrorCsv(rows),
   };
@@ -585,12 +612,13 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
    * Commits valid rows from a spreadsheet import.
    * - Idempotent per (organizationId, idempotencyKey) bound to the exact file hash,
    *   companyId and mapping.
-   * - Enforces exact trial allowance BEFORE persisting: because the account trial
-   *   allows at most 1 new transaction per Jakarta calendar day (and no active paid
-   *   entitlement exists until Batch 09), any file with >1 valid row is rejected up
-   *   front with TRIAL_SINGLE_ROW_LIMIT so no partial or hidden override ever occurs.
-   * - Persists the accepted row and the ImportBatch record inside Batch 02's
-   *   `trialService.create` transaction callback.
+   * - Trial workspaces: the account trial allows at most 1 new transaction per
+   *   Jakarta calendar day, so any file with >1 valid row is rejected up front
+   *   with TRIAL_SINGLE_ROW_LIMIT; no partial or hidden override ever occurs.
+   * - Subscription workspaces (verified license): all valid rows commit
+   *   atomically within the signed MONTHLY_TRANSACTIONS cap, or none do.
+   * - Persists the rows and the ImportBatch record inside
+   *   `trialService.createMany`'s single transaction callback.
    */
   async function commit(
     sessionId: string,
@@ -673,19 +701,19 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
       !input.acknowledgeDuplicates
     )
       throw new ImportBatchError("DUPLICATE_WARNING", result);
-    if (valid.length > 1)
+    // Trial workspaces may commit exactly one row; subscription workspaces may
+    // commit every valid row (the monthly cap is enforced again under lock).
+    if (valid.length > 1 && !result.entitlement)
       throw new ImportBatchError("TRIAL_SINGLE_ROW_LIMIT", result);
 
-    const row = valid[0];
-    const rowKey = deriveChildUuid(input.idempotencyKey, row.rowNumber);
     let committedBatchId = "";
 
-    const created = await trials.create(
+    const created = await trials.createMany(
       sessionId,
-      {
-        idempotencyKey: rowKey,
+      valid.map((row) => ({
+        idempotencyKey: deriveChildUuid(input.idempotencyKey, row.rowNumber),
         payloadFingerprint: row.fingerprint!,
-      },
+      })),
       async (tx, context) => {
         const rechecked = await evaluateSheet(
           tx,
@@ -702,14 +730,22 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
         );
         if (recheckedValid.length === 0)
           throw new ImportBatchError("NO_VALID_ROWS", rechecked);
-        if (recheckedValid.length > 1)
+        // The rows must be exactly those fingerprinted before the lock was taken.
+        if (
+          recheckedValid.length !== valid.length ||
+          recheckedValid.some((r, i) => r.fingerprint !== valid[i].fingerprint)
+        )
+          throw new ImportBatchError("IDEMPOTENCY_CONFLICT", rechecked);
+        if (recheckedValid.length > 1 && !rechecked.entitlement)
           throw new ImportBatchError("TRIAL_SINGLE_ROW_LIMIT", rechecked);
-        const target = recheckedValid[0];
-        if (target.duplicates.length > 0 && !input.acknowledgeDuplicates)
+        if (
+          recheckedValid.some((r) => r.duplicates.length > 0) &&
+          !input.acknowledgeDuplicates
+        )
           throw new ImportBatchError("DUPLICATE_WARNING", rechecked);
 
         const batchId = randomUUID();
-        const txId = randomUUID();
+        const txIds = recheckedValid.map(() => randomUUID());
         committedBatchId = batchId;
 
         await tx.importBatch.create({
@@ -726,8 +762,8 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
             validRows: rechecked.validRows,
             invalidRows: rechecked.invalidRows,
             duplicateRows: rechecked.duplicateRows,
-            createdCount: 1,
-            transactionIds: [txId],
+            createdCount: txIds.length,
+            transactionIds: txIds,
             rowSummary: rechecked.rows.map((r) => ({
               rowNumber: r.rowNumber,
               status: r.status,
@@ -742,56 +778,59 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
           },
         });
 
-        await tx.transaction.create({
-          data: {
-            id: txId,
-            organizationId: context.organizationId,
-            companyId: input.companyId,
-            counterpartyId: target.counterpartyId!,
-            importBatchId: batchId,
-            taxFamily: target.taxFamily as (typeof intakeFamilies)[number],
-            documentType: target.documentType as (typeof documentTypes)[number],
-            source: "SPREADSHEET",
-            status: "DRAFT",
-            invoiceNumber: target.invoiceNumber,
-            invoiceNumberNormalized: normalizeInvoiceNumber(
-              target.invoiceNumber,
-            ),
-            documentDate: new Date(`${target.documentDate}T00:00:00.000Z`),
-            taxPeriod: target.taxPeriod,
-            currency: "IDR",
-            description: target.description,
-            totalAmount: target.totalAmount!,
-            createdBy: context.userId,
-            createdAt: context.createdAt,
-            lines: {
-              create: [
-                {
-                  position: 1,
-                  description: target.lineDescription,
-                  quantity: canonicalFixed(target.quantity, QUANTITY_SCALE),
-                  unitPrice: canonicalFixed(target.unitPrice, AMOUNT_SCALE),
-                  amount: target.totalAmount!,
+        for (const [index, target] of recheckedValid.entries()) {
+          await tx.transaction.create({
+            data: {
+              id: txIds[index],
+              organizationId: context.organizationId,
+              companyId: input.companyId,
+              counterpartyId: target.counterpartyId!,
+              importBatchId: batchId,
+              taxFamily: target.taxFamily as (typeof intakeFamilies)[number],
+              documentType:
+                target.documentType as (typeof documentTypes)[number],
+              source: "SPREADSHEET",
+              status: "DRAFT",
+              invoiceNumber: target.invoiceNumber,
+              invoiceNumberNormalized: normalizeInvoiceNumber(
+                target.invoiceNumber,
+              ),
+              documentDate: new Date(`${target.documentDate}T00:00:00.000Z`),
+              taxPeriod: target.taxPeriod,
+              currency: "IDR",
+              description: target.description,
+              totalAmount: target.totalAmount!,
+              createdBy: context.userId,
+              createdAt: context.createdAt,
+              lines: {
+                create: [
+                  {
+                    position: 1,
+                    description: target.lineDescription,
+                    quantity: canonicalFixed(target.quantity, QUANTITY_SCALE),
+                    unitPrice: canonicalFixed(target.unitPrice, AMOUNT_SCALE),
+                    amount: target.totalAmount!,
+                  },
+                ],
+              },
+              events: {
+                create: {
+                  actorId: context.userId,
+                  action: "DRAFT_IMPORTED",
+                  changes: {
+                    importBatchId: batchId,
+                    fileName: cleanName,
+                    fileSha256: sheet.sha256,
+                    rowNumber: target.rowNumber,
+                    invoiceNumber: target.invoiceNumber,
+                    totalAmount: target.totalAmount,
+                  },
+                  createdAt: context.createdAt,
                 },
-              ],
-            },
-            events: {
-              create: {
-                actorId: context.userId,
-                action: "DRAFT_IMPORTED",
-                changes: {
-                  importBatchId: batchId,
-                  fileName: cleanName,
-                  fileSha256: sheet.sha256,
-                  rowNumber: target.rowNumber,
-                  invoiceNumber: target.invoiceNumber,
-                  totalAmount: target.totalAmount,
-                },
-                createdAt: context.createdAt,
               },
             },
-          },
-        });
+          });
+        }
 
         await tx.workspaceAudit.create({
           data: {
@@ -802,7 +841,7 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
           },
         });
 
-        return { id: txId };
+        return { ids: txIds };
       },
     );
 
@@ -820,8 +859,8 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
 
     return {
       batchId: committedBatchId,
-      transactionIds: [created.transactionId],
-      createdCount: 1,
+      transactionIds: created.transactionIds,
+      createdCount: created.transactionIds.length,
       invalidRows: result.invalidRows,
       replay: created.replay,
     };

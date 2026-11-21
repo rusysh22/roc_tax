@@ -105,6 +105,39 @@ export function createTestEd25519KeyPair() {
   };
 }
 
+const ED25519_PKCS8_PREFIX = Buffer.from(
+  "302e020100300506032b657004220420",
+  "hex",
+);
+
+/**
+ * Stable Ed25519 pair for the non-production `SYNTHETIC_TEST` billing double.
+ * The seed is an HMAC of a server secret under a fixed domain label, so every
+ * process, route bundle and restart signs with the same key (a random
+ * per-process key made licenses fail verification after a restart). This key
+ * never authorizes BERLANGGAN_LIVE access, which requires the vendor's key.
+ */
+export function syntheticEd25519KeyPair(serverSecret: string) {
+  if (serverSecret.length < 32)
+    throw new Error("SYNTHETIC_KEY_SECRET_TOO_SHORT");
+  const seed = createHmac("sha256", serverSecret)
+    .update("serentax:synthetic-billing:ed25519:v1")
+    .digest();
+  const privateKey = createPrivateKey({
+    key: Buffer.concat([ED25519_PKCS8_PREFIX, seed]),
+    format: "der",
+    type: "pkcs8",
+  });
+  return {
+    publicKeyPem: createPublicKey(privateKey)
+      .export({ format: "pem", type: "spki" })
+      .toString(),
+    privateKeyPem: privateKey
+      .export({ format: "pem", type: "pkcs8" })
+      .toString(),
+  };
+}
+
 export function signCanonicalEntitlement(
   entitlementEnvelope: unknown,
   privateKeyPem: string,

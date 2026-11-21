@@ -2,9 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/messages";
 import { trialMessages, formatTrialTimestamp } from "@/i18n/trial";
-import type { TrialSnapshot } from "@/server/trial/state";
+import type { TrialSnapshot as BaseTrialSnapshot } from "@/server/trial/state";
+import type { CreationAllowance } from "@/server/trial/service";
 import { Button } from "@/components/ui/button";
 import { post } from "./forms";
+type TrialSnapshot = BaseTrialSnapshot & {
+  subscription?: CreationAllowance | null;
+};
 export function TrialStrip({ locale }: { locale: Locale }) {
   const t = trialMessages[locale];
   const [trial, setTrial] = useState<TrialSnapshot | null>(null);
@@ -68,6 +72,43 @@ export function TrialStrip({ locale }: { locale: Locale }) {
     };
   }, []);
   const state = trial?.expiresAt && remaining <= 0 ? "EXPIRED" : trial?.state;
+  const subscription = trial?.subscription ?? null;
+  if (subscription)
+    return (
+      <section
+        aria-labelledby="trial-title"
+        className="space-y-4 rounded-md border p-5"
+      >
+        <h2 id="trial-title" className="text-xl font-semibold">
+          {t.subscriptionTitle}
+        </h2>
+        <p role="status">{t.subscriptionActive}</p>
+        <dl className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <dt>{t.subscriptionPlan}</dt>
+            <dd className="font-mono">{subscription.planCode ?? "—"}</dd>
+          </div>
+          <div>
+            <dt>{t.subscriptionUsed}</dt>
+            <dd className="font-mono tabular-nums">
+              {subscription.usedThisMonth}
+              {subscription.monthlyLimit !== null &&
+                ` / ${subscription.monthlyLimit}`}
+            </dd>
+          </div>
+          <div>
+            <dt>{t.subscriptionRemaining}</dt>
+            <dd className="font-mono tabular-nums">
+              {subscription.remainingThisMonth ?? t.subscriptionUnlimited}
+            </dd>
+          </div>
+        </dl>
+        <p className="text-sm text-muted-foreground">{t.subscriptionNote}</p>
+        <Button variant="outline" disabled={busy} onClick={() => refresh()}>
+          {t.retry}
+        </Button>
+      </section>
+    );
   const seconds = Math.ceil(remaining / 1000);
   const duration = [
     Math.floor(seconds / 3600),

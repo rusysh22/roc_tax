@@ -47,8 +47,13 @@ export function NewTransactionView({ locale }: { locale: Locale }) {
   const [documentType, setDocumentType] =
     useState<(typeof documentTypes)[number]>("SUPPLIER_INVOICE");
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [documentDate, setDocumentDate] = useState("2026-11-16");
-  const [taxPeriod, setTaxPeriod] = useState("2026-11");
+  // Default to today in Asia/Jakarta (the tax calendar), never a fixed date.
+  const [documentDate, setDocumentDate] = useState(() =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(
+      new Date(),
+    ),
+  );
+  const [taxPeriod, setTaxPeriod] = useState(() => documentDate.slice(0, 7));
   const [description, setDescription] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([
     { description: "", quantity: "1", unitPrice: "0.00" },

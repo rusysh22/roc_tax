@@ -23,7 +23,7 @@ async function handle(request: Request) {
       request.method === "POST" &&
       request.headers.get("origin") !== authConfiguration().origin
     )
-      return Response.json({ code: "FORBIDDEN" }, { status: 403 });
+      return Response.json({ code: "ORIGIN_MISMATCH" }, { status: 403 });
     const path = new URL(request.url).pathname.replace("/api/auth/", "");
     if (!allowed.has(path) && !/^reset-password\/[a-zA-Z0-9_-]+$/.test(path))
       return Response.json({ code: "NOT_FOUND" }, { status: 404 });

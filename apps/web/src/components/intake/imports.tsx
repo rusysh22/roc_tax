@@ -363,13 +363,19 @@ export function ImportsView({ locale }: { locale: Locale }) {
                     {t.duplicateRows}: {preview.duplicateRows}
                   </span>
                 </div>
-                {preview.validRows > 1 && (
-                  <p
-                    role="alert"
-                    className="rounded border bg-background p-3 text-xs leading-6"
-                  >
-                    {t.trialSingleRowNotice}
+                {preview.entitlement ? (
+                  <p className="rounded border bg-background p-3 text-xs leading-6">
+                    {t.entitledNotice}
                   </p>
+                ) : (
+                  preview.validRows > 1 && (
+                    <p
+                      role="alert"
+                      className="rounded border bg-background p-3 text-xs leading-6"
+                    >
+                      {t.trialSingleRowNotice}
+                    </p>
+                  )
                 )}
                 {(preview.invalidRows > 0 || preview.duplicateRows > 0) && (
                   <Button
@@ -469,7 +475,7 @@ export function ImportsView({ locale }: { locale: Locale }) {
                 }
                 onClick={() => void sendFile("commit", mapping)}
               >
-                {t.commitButton}
+                {preview.entitlement ? t.commitButtonEntitled : t.commitButton}
               </Button>
             </div>
           )}

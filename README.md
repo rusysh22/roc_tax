@@ -22,6 +22,24 @@ npm run dev
 
 Open http://127.0.0.1:3000 (redirects to `/id`); `/en` is English. Account screens are `/{locale}/auth/sign-up`, `sign-in`, `verify`, `forgot`, and `reset`; the protected workspace screen is `/{locale}/app`. View local email at http://127.0.0.1:8025 and follow verification links. Invitation recipients sign in with the invited email, then reopen the invitation email link.
 
+### Local setup without Docker (native PostgreSQL)
+
+When Docker Desktop is unavailable, an embedded PostgreSQL 17 (`embedded-postgres`, in the git-ignored `.local-test-tools/`) runs natively on `127.0.0.1:55432`. Use a `*_dev` database for the app and keep `*_test` for automated tests. In `.env` and `apps/web/.env.local`, point `DATABASE_URL` at `.../serentax_dev`, set `BETTER_AUTH_URL=http://127.0.0.1:3000`, a random `BETTER_AUTH_SECRET`/`TAX_DATA_KEY` (32+ characters), and `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025`. Then, in three terminals:
+
+```powershell
+node .local-test-tools/start-postgres.mjs   # PostgreSQL on 127.0.0.1:55432
+node .local-test-tools/dev-mail.mjs         # prints captured emails (verification links)
+npm run db:migrate; npm run dev
+```
+
+Open the app exactly at `http://127.0.0.1:3000`. Auth requests from another origin (for example `localhost:3000`) are rejected with `ORIGIN_MISMATCH` by design. If the dev server ever reloads a page in a loop, stop it, delete `apps/web/.next`, and start it again.
+
+### Demo data (local only)
+
+`npm run db:seed:dev` (add `-- --reset` to recreate) builds a synthetic demo workspace through the real services and refuses to run unless `DATABASE_URL` names a `*_dev` database. It creates a SUPERADMIN owner plus Preparer, Reviewer and Approver users (password `DevOnly-Passw0rd!2026`; emails are printed), a `SYNTHETIC_TEST` billing configuration with an active synthetic license (250 transactions/month), demo tax rules, two companies, eight counterparties, about 16 transactions across every workflow status, a 3-row import, and two BPPU XML exports with manual Coretax outcomes. The demo rules are marked `SME_APPROVED` with the citation "DEMO LOKAL — data sintetis, bukan persetujuan Tax SME" only so the full flow can run locally. They are not a Tax SME sign-off and must never reach a shared or production database.
+
+The browser E2E for the core flow (draft → evaluate → submit → approve → XML export → Coretax outcome → reconciliation, plus role boundaries) runs against the seeded local dev stack: `npx playwright test --config playwright.flow.config.ts`. The default `npm run test:e2e` suite needs `DATABASE_URL` exported in the shell, because the standalone server does not read `apps/web/.env.local`.
+
 Next development loads environment from `apps/web/.env.local`; root `.env` is loaded by Prisma CLI and the database check script. Supply configuration through process environment for standalone `npm start` and containers. Public pages build without secrets or database access. Never expose database, SMTP or auth secrets using a NEXT_PUBLIC prefix. An example empty secret deliberately leaves account services unavailable.
 
 Migration `202611160001_auth_workspaces` creates identity/session/account/verification/rate-limit tables and organization/membership/invitation/audit tables. All timestamps use PostgreSQL timestamptz. Deploy with `npm run db:migrate`; no seed or superadmin is created. `db:check` executes a real `SELECT 1` using Prisma's PostgreSQL adapter and returns a nonzero exit code on failure. Redis is reserved for later jobs; auth rate limits use PostgreSQL. Compose ports bind only to loopback. Stop with `docker compose down`; do not add `-v` unless deliberately deleting local data.
@@ -127,6 +145,7 @@ Migrations `202611160005_ocr_provider` and `202611160006_user_platform_role` add
 - **Typed Berlanggan adapter & Canonical JSON Ed25519 trust (`apps/web/src/server/billing/berlanggan.ts`, `crypto.ts`, `canonical.ts`):** Implements `GET /v1/catalog/products/{slug}/plans`, `POST /v1/activate`, `/v1/validate`, `/v1/deactivate`, and `/v1/operation-authorize`, handles all documented statuses (`active`, `grace`, `expired`, `suspended`, `revoked`, `invalid`, `seat_full`, `rate_limited`), and verifies `entitlement_signature` with Ed25519 over Canonical JSON (`sort_keys`, compact `,`/`:`, unescaped UTF-8).
 - **HMAC-SHA256 webhook receiver & idempotency (`/api/webhooks/berlanggan`):** Verifies `X-Berlanggan-Signature` over exact raw request bytes using `timingSafeEqual` before parsing JSON, prevents duplicate processing via `BillingWebhookEvent.eventId` uniqueness, refreshes server-side validation for `license.issued`/`license.renewed`, and suspends access immediately on `license.suspended`.
 - **Fail-closed compatibility gate (`BILLING_NOT_CONFIGURED` / `SAAS_LICENSING_UNAPPROVED`):** Server-side paid access remains strictly disabled unless `adapterMode === "BERLANGGAN_LIVE"` AND `saasLicensingApproved === true` AND a verified external `storefrontUrl` + signed entitlement exist. Paid limits/flags are resolved centrally in `apps/web/src/server/billing/entitlements.ts` from provider entitlements only, with zero fabricated pricing or checkout links, leaving local `72h` / `1/day` / `3 total` trial intact.
+- **Subscription-entitled creation (`apps/web/src/server/trial/service.ts`, migration `202611210011_entitled_usage`):** Manual drafts and spreadsheet imports in a workspace with a verified license (paid Berlanggan, or a `SYNTHETIC_TEST` license outside production) use the signed `MONTHLY_TRANSACTIONS` entitlement instead of the trial ledger. A non-negative integer is a cap per Asia/Jakarta calendar month, an explicit `null` means unlimited, and an absent key fails closed (`ENTITLEMENT_MISSING`). Usage is counted from append-only, idempotent `EntitledUsage` receipts, so voiding never refunds quota (`MONTHLY_LIMIT` when exhausted). Multi-row imports commit atomically under the cap or not at all. Workspaces without a valid license keep the unchanged trial rules. The `SYNTHETIC_TEST` signing key is derived from the server secret, so licenses stay valid across restarts and processes.
 
 ## Batch 10 reconciliation, reports & superadmin operations
 

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Locale } from "@/i18n/messages";
 import { exportMessages } from "@/i18n/exports";
 import { taxMessages } from "@/i18n/tax";
@@ -117,6 +117,9 @@ export function TransactionReviewPanel({
   const [soleAck, setSoleAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState("");
+  // True once the user edits the evaluation inputs; background reloads (e.g.
+  // when the parent refreshes the transaction) must not overwrite those edits.
+  const edited = useRef(false);
 
   function formatTaxError(error: unknown) {
     if (error instanceof ApiFailure) {
@@ -132,6 +135,7 @@ export function TransactionReviewPanel({
         `/api/transactions/${transactionId}/review`,
       );
       setData(next);
+      if (edited.current) return;
       setTaxFamily(currentFamily);
       setObjectCode(next.taxInput?.objectCode ?? "");
       setPayrollRef(next.taxInput?.payrollEvidenceRef ?? "");
@@ -154,6 +158,7 @@ export function TransactionReviewPanel({
       await apiPost(`/api/transactions/${transactionId}/review`, payload);
       setReason("");
       setSoleAck(false);
+      edited.current = false;
       await load();
       await onChanged();
       setFeedback(t.saved);
@@ -303,12 +308,21 @@ export function TransactionReviewPanel({
           }}
           className="space-y-3 border-t pt-4"
         >
-          <div className="grid gap-3 sm:grid-cols-2">
+          {/* Inputs stay disabled until the saved tax input loads, so the
+              async load can never overwrite what the user already typed. */}
+          <fieldset
+            disabled={!data || busy}
+            aria-busy={!data}
+            className="grid gap-3 sm:grid-cols-2"
+          >
             <label className="block space-y-1 text-sm font-medium">
               <span>{t.taxFamilyLabel}</span>
               <select
                 value={taxFamily}
-                onChange={(e) => setTaxFamily(e.target.value)}
+                onChange={(e) => {
+                  edited.current = true;
+                  setTaxFamily(e.target.value);
+                }}
                 disabled={transactionStatus === "SUBMITTED"}
                 className="min-h-11 w-full rounded-md border bg-background px-3 text-sm"
               >
@@ -326,35 +340,50 @@ export function TransactionReviewPanel({
             <Field
               label={t.objectCodeLabel}
               value={objectCode}
-              onChange={(e) => setObjectCode(e.target.value)}
+              onChange={(e) => {
+                edited.current = true;
+                setObjectCode(e.target.value);
+              }}
               maxLength={32}
             />
             <Field
               label={t.payrollRefLabel}
               value={payrollRef}
-              onChange={(e) => setPayrollRef(e.target.value)}
+              onChange={(e) => {
+                edited.current = true;
+                setPayrollRef(e.target.value);
+              }}
               maxLength={120}
             />
             <Field
               label={t.treatyRefLabel}
               value={treatyRef}
-              onChange={(e) => setTreatyRef(e.target.value)}
+              onChange={(e) => {
+                edited.current = true;
+                setTreatyRef(e.target.value);
+              }}
               maxLength={120}
             />
             <Field
               label={t.treatyCountryLabel}
               value={treatyCountry}
-              onChange={(e) => setTreatyCountry(e.target.value)}
+              onChange={(e) => {
+                edited.current = true;
+                setTreatyCountry(e.target.value);
+              }}
               maxLength={2}
             />
             <Field
               label={t.overrideNoteLabel}
               value={overrideNote}
-              onChange={(e) => setOverrideNote(e.target.value)}
+              onChange={(e) => {
+                edited.current = true;
+                setOverrideNote(e.target.value);
+              }}
               maxLength={500}
             />
-          </div>
-          <Submit busy={busy}>{t.evaluateButton}</Submit>
+          </fieldset>
+          <Submit busy={busy || !data}>{t.evaluateButton}</Submit>
         </form>
       )}
 

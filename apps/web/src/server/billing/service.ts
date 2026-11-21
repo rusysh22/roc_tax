@@ -21,6 +21,7 @@ import {
 import {
   createTestEd25519KeyPair,
   sha256Hex,
+  syntheticEd25519KeyPair,
   verifyBerlangganEd25519,
   verifyBerlangganWebhookHmac,
 } from "./crypto";
@@ -69,13 +70,18 @@ async function requireSuperadmin(tx: Tx, sessionId: string) {
   return session;
 }
 
-// Lazy singleton synthetic Ed25519 pair scoped to runtime process for local
-// `SYNTHETIC_TEST` test doubles when no custom test key was configured.
+// Synthetic Ed25519 pair for local `SYNTHETIC_TEST` test doubles. Derived
+// from a server secret so it is identical across processes and restarts; a
+// random key is used only when no secret is configured (isolated unit tests).
 let cachedSynthPair: { publicKeyPem: string; privateKeyPem: string } | null =
   null;
-function getSyntheticKeyPair() {
+function getSyntheticKeyPair(env: NodeJS.ProcessEnv = process.env) {
   if (!cachedSynthPair) {
-    cachedSynthPair = createTestEd25519KeyPair();
+    const secret = env.TAX_DATA_KEY || env.BETTER_AUTH_SECRET;
+    cachedSynthPair =
+      secret && secret.length >= 32
+        ? syntheticEd25519KeyPair(secret)
+        : createTestEd25519KeyPair();
   }
   return cachedSynthPair;
 }
@@ -126,7 +132,7 @@ export function billingService(
       };
     }
     if (config.adapterMode === "SYNTHETIC_TEST") {
-      const pair = getSyntheticKeyPair();
+      const pair = getSyntheticKeyPair(env);
       return {
         adapter: createSyntheticBillingAdapter(pair.privateKeyPem),
         publicKey: config.ed25519PublicKey || pair.publicKeyPem,
@@ -220,7 +226,7 @@ export function billingService(
         }
         const effectivePublicKey =
           command.adapterMode === "SYNTHETIC_TEST" && !command.ed25519PublicKey
-            ? getSyntheticKeyPair().publicKeyPem
+            ? getSyntheticKeyPair(env).publicKeyPem
             : command.ed25519PublicKey;
 
         const updated = await tx.billingConfig.upsert({
