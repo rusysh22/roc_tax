@@ -2,6 +2,8 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Archive, ArchiveRestore, BadgeCheck, Workflow } from "lucide-react";
+import { codeLabel, codeOptions } from "@/i18n/codes";
+import { CodeBadge } from "@/components/ui/code-badge";
 import type { Locale } from "@/i18n/messages";
 import { exportMessages } from "@/i18n/exports";
 import { shellMessages } from "@/i18n/shell";
@@ -17,7 +19,7 @@ import {
   TextInput,
 } from "@/components/ui/field";
 import { MenuItem } from "@/components/ui/menu";
-import { Badge, Notice } from "@/components/ui/status";
+import { Notice } from "@/components/ui/status";
 import { useToast } from "@/components/ui/toast";
 import {
   FormBody,
@@ -65,31 +67,16 @@ function templateError(error: unknown, locale: Locale) {
   return formatFailure(error, locale);
 }
 
-const statusLabel = (locale: Locale, status: XmlTemplateStatus) => {
-  const t = exportMessages[locale];
-  return status === "VERIFIED"
-    ? t.availableBadge
-    : status === "RETIRED"
-      ? t.retireButton
-      : t.unverifiedBadge;
-};
+const statusLabel = (locale: Locale, status: XmlTemplateStatus) =>
+  codeLabel(locale, "xmlTemplateStatus", status);
 
 function StatusPill({
-  locale,
   status,
 }: {
-  locale: Locale;
+  locale?: Locale;
   status: XmlTemplateStatus;
 }) {
-  if (status === "VERIFIED")
-    return (
-      <Badge tone="solid" dot>
-        {statusLabel(locale, status)}
-      </Badge>
-    );
-  if (status === "RETIRED")
-    return <Badge tone="muted">{statusLabel(locale, status)}</Badge>;
-  return <Badge tone="outline">{statusLabel(locale, status)}</Badge>;
+  return <CodeBadge domain="xmlTemplateStatus" code={status} />;
 }
 
 const setStatus = (templateId: string, status: XmlTemplateStatus) =>
@@ -130,6 +117,8 @@ export function XmlTemplatesList({ locale }: { locale: Locale }) {
         label: t.familyLabel,
         type: "enum",
         value: (r) => r.taxFamily,
+        display: (r) => codeLabel(locale, "taxFamily", r.taxFamily),
+        options: codeOptions(locale, "taxFamily", allTaxFamilies),
         filterable: true,
         groupable: true,
       },
@@ -168,7 +157,11 @@ export function XmlTemplatesList({ locale }: { locale: Locale }) {
     {
       key: "family",
       header: t.familyLabel,
-      cell: (r) => <span className="font-mono text-xs">{r.taxFamily}</span>,
+      cell: (r) => (
+        <span className="text-xs">
+          {codeLabel(locale, "taxFamily", r.taxFamily)}
+        </span>
+      ),
     },
     {
       key: "label",
@@ -212,7 +205,11 @@ export function XmlTemplatesList({ locale }: { locale: Locale }) {
           label: v.archive,
           icon: <Archive />,
           visible: (rows) => rows.some((r) => !isArchived(r)),
-          confirm: { title: v.confirmArchiveTitle, body: v.confirmArchiveBody },
+          confirm: {
+            title: v.confirmArchiveTitle,
+            body: v.confirmArchiveBody,
+            tone: "warning",
+          },
           run: async (rows) => {
             try {
               for (const r of rows.filter((r) => !isArchived(r)))
@@ -321,7 +318,11 @@ export function XmlTemplateForm({
             label={t.familyStatusTitle}
             buttons={
               record.status === "UNVERIFIED" ? (
-                <Button type="button" onClick={() => void change("VERIFIED")}>
+                <Button
+                  type="button"
+                  variant="success"
+                  onClick={() => void change("VERIFIED")}
+                >
                   <BadgeCheck aria-hidden="true" />
                   <span>{t.verifyButton}</span>
                 </Button>
@@ -364,13 +365,27 @@ export function XmlTemplateForm({
           </SheetTitle>
           <div className="grid gap-x-12 gap-y-6 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              <FormField label={t.familyLabel} layout="inline">
-                <ReadValue mono>{record.taxFamily}</ReadValue>
+              <FormField
+                field="xmlTemplate.taxFamily"
+                label={t.familyLabel}
+                layout="inline"
+              >
+                <ReadValue>
+                  {codeLabel(locale, "taxFamily", record.taxFamily)}
+                </ReadValue>
               </FormField>
-              <FormField label={t.sourceLabelField} layout="inline">
+              <FormField
+                field="xmlTemplate.sourceLabel"
+                label={t.sourceLabelField}
+                layout="inline"
+              >
                 <ReadValue>{record.sourceLabel}</ReadValue>
               </FormField>
-              <FormField label={t.sourceUrlLabel} layout="inline">
+              <FormField
+                field="xmlTemplate.sourceUrl"
+                label={t.sourceUrlLabel}
+                layout="inline"
+              >
                 <ReadValue className="break-all">
                   <a
                     className="underline"
@@ -382,22 +397,38 @@ export function XmlTemplateForm({
                   </a>
                 </ReadValue>
               </FormField>
-              <FormField label={t.fixtureVerifiedLabel} layout="inline">
+              <FormField
+                field="xmlTemplate.fixtureVerified"
+                label={t.fixtureVerifiedLabel}
+                layout="inline"
+              >
                 <ReadValue>{record.fixtureVerified ? v.yes : v.no}</ReadValue>
               </FormField>
             </FieldGroup>
             <FieldGroup title={t.sourceShaLabel}>
-              <FormField label={t.sourceShaField} layout="inline">
+              <FormField
+                field="xmlTemplate.sourceSha256"
+                label={t.sourceShaField}
+                layout="inline"
+              >
                 <ReadValue mono className="text-xs break-all">
                   {record.sourceSha256}
                 </ReadValue>
               </FormField>
-              <FormField label={t.xsdHashField} layout="inline">
+              <FormField
+                field="xmlTemplate.xsdSchemaHash"
+                label={t.xsdHashField}
+                layout="inline"
+              >
                 <ReadValue mono className="text-xs break-all">
                   {record.xsdSchemaHash}
                 </ReadValue>
               </FormField>
-              <FormField label={t.publishedLabel} layout="inline">
+              <FormField
+                field="xmlTemplate.publishedAt"
+                label={t.publishedLabel}
+                layout="inline"
+              >
                 <ReadValue>{record.sourcePublishedAt?.slice(0, 10)}</ReadValue>
               </FormField>
             </FieldGroup>
@@ -411,21 +442,31 @@ export function XmlTemplateForm({
           disabled={saving}
         >
           {error && (
-            <Notice tone="strong" role="alert">
+            <Notice tone="danger" role="alert">
               {error}
             </Notice>
           )}
           <Notice>{t.adminIntro}</Notice>
           <FieldGroup columns={2}>
-            <FormField label={t.familyLabel} required layout="inline">
+            <FormField
+              field="xmlTemplate.taxFamily"
+              label={t.familyLabel}
+              required
+              layout="inline"
+            >
               <Combobox
                 value={draft.taxFamily}
                 onChange={(value) => value && set({ taxFamily: value })}
-                options={allTaxFamilies.map((f) => ({ value: f, label: f }))}
+                options={codeOptions(locale, "taxFamily", allTaxFamilies)}
                 labels={comboLabels(locale)}
               />
             </FormField>
-            <FormField label={t.versionTagLabel} required layout="inline">
+            <FormField
+              field="xmlTemplate.versionTag"
+              label={t.versionTagLabel}
+              required
+              layout="inline"
+            >
               <TextInput
                 value={draft.versionTag}
                 onChange={(e) => set({ versionTag: e.target.value })}
@@ -434,7 +475,12 @@ export function XmlTemplateForm({
                 autoFocus
               />
             </FormField>
-            <FormField label={t.sourceUrlLabel} required layout="inline">
+            <FormField
+              field="xmlTemplate.sourceUrl"
+              label={t.sourceUrlLabel}
+              required
+              layout="inline"
+            >
               <TextInput
                 type="url"
                 value={draft.sourceUrl}
@@ -442,14 +488,24 @@ export function XmlTemplateForm({
                 maxLength={500}
               />
             </FormField>
-            <FormField label={t.sourceLabelField} required layout="inline">
+            <FormField
+              field="xmlTemplate.sourceLabel"
+              label={t.sourceLabelField}
+              required
+              layout="inline"
+            >
               <TextInput
                 value={draft.sourceLabel}
                 onChange={(e) => set({ sourceLabel: e.target.value })}
                 maxLength={300}
               />
             </FormField>
-            <FormField label={t.sourceShaField} required layout="inline">
+            <FormField
+              field="xmlTemplate.sourceSha256"
+              label={t.sourceShaField}
+              required
+              layout="inline"
+            >
               <TextInput
                 value={draft.sourceSha256}
                 onChange={(e) =>
@@ -459,7 +515,12 @@ export function XmlTemplateForm({
                 className="font-mono text-xs"
               />
             </FormField>
-            <FormField label={t.xsdHashField} required layout="inline">
+            <FormField
+              field="xmlTemplate.xsdSchemaHash"
+              label={t.xsdHashField}
+              required
+              layout="inline"
+            >
               <TextInput
                 value={draft.xsdSchemaHash}
                 onChange={(e) =>

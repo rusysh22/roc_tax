@@ -7,6 +7,7 @@ import { accountMessages, accountError } from "@/i18n/account";
 import { Field, post } from "./forms";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitch, ThemeToggle } from "@/components/layout/preferences";
+import { BrandLogo } from "@/components/ui/brand";
 export type AuthScreen = "sign-in" | "sign-up" | "forgot" | "reset" | "verify";
 export function AuthForm({
   locale,
@@ -93,12 +94,9 @@ export function AuthForm({
       <div className="w-full max-w-sm space-y-6">
         <Link
           href={`/${locale}`}
-          className="mx-auto flex w-fit items-center gap-2 text-xl font-bold tracking-tight"
+          className="mx-auto flex w-fit items-center text-foreground"
         >
-          <span className="flex size-9 items-center justify-center rounded-xl bg-foreground text-sm text-background">
-            S
-          </span>
-          SerenTax
+          <BrandLogo className="h-9" />
         </Link>
         <div className="space-y-6 rounded-xl border bg-surface p-6 shadow-md sm:p-8">
           <div className="space-y-1.5">
@@ -127,6 +125,7 @@ export function AuthForm({
             <fieldset disabled={busy || !ready} className="space-y-4">
               {screen === "sign-up" && (
                 <Field
+                  field="user.name"
                   label={t.name}
                   name="name"
                   autoComplete="name"
@@ -137,6 +136,7 @@ export function AuthForm({
               )}
               {screen !== "reset" && (
                 <Field
+                  field="auth.email"
                   label={t.email}
                   name="email"
                   type="email"
@@ -148,6 +148,7 @@ export function AuthForm({
               {["sign-in", "sign-up", "reset"].includes(screen) && (
                 <>
                   <Field
+                    field="auth.password"
                     label={t.password}
                     name="password"
                     type="password"

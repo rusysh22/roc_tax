@@ -17,6 +17,7 @@ import {
   Undo2,
   Upload,
 } from "lucide-react";
+import { codeLabel } from "@/i18n/codes";
 import type { Locale } from "@/i18n/messages";
 import { intakeMessages } from "@/i18n/intake";
 import { taxMessages } from "@/i18n/tax";
@@ -457,6 +458,7 @@ export function TransactionForm({
       {c.approve && (
         <Button
           type="button"
+          variant="success"
           disabled={review.busy}
           onClick={() =>
             review.data?.segregationPolicy === "SOLE_USER_EXCEPTION"
@@ -489,7 +491,7 @@ export function TransactionForm({
       {c.requestChanges && (
         <Button
           type="button"
-          variant="outline"
+          variant="warning"
           disabled={review.busy}
           onClick={() => setPrompt("request_changes")}
         >
@@ -630,14 +632,14 @@ export function TransactionForm({
             })}
           </tbody>
           <tfoot>
-            <tr className="border-t bg-surface-2">
+            <tr className="border-t-2 border-border-strong bg-surface-2">
               <td
                 colSpan={4}
-                className="px-3 py-2.5 text-right text-sm font-semibold"
+                className="px-3 py-2.5 text-right text-sm font-bold"
               >
                 {t.totalAmount}
               </td>
-              <td className="px-3 py-2.5 text-right font-mono font-semibold whitespace-nowrap">
+              <td className="px-3 py-2.5 text-right font-mono font-bold whitespace-nowrap">
                 {showForm
                   ? total
                     ? formatAmountString(total, locale)
@@ -673,7 +675,11 @@ export function TransactionForm({
   const documentsTab = (
     <div className="space-y-4">
       {creating ? (
-        <FormField label={t.optionalSourceFile} help={t.scanNotConfigured}>
+        <FormField
+          field="transaction.attachment"
+          label={t.optionalSourceFile}
+          help={t.scanNotConfigured}
+        >
           <input
             type="file"
             accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
@@ -775,7 +781,12 @@ export function TransactionForm({
   const headerFields = (
     <div className="grid gap-x-12 gap-y-5 lg:grid-cols-2">
       <FieldGroup>
-        <FormField label={t.company} required={showForm} layout="inline">
+        <FormField
+          field="transaction.companyId"
+          label={t.company}
+          required={showForm}
+          layout="inline"
+        >
           {showForm ? (
             <Combobox
               value={effectiveDraft.companyId}
@@ -794,7 +805,12 @@ export function TransactionForm({
             </ReadValue>
           )}
         </FormField>
-        <FormField label={t.counterparty} required={showForm} layout="inline">
+        <FormField
+          field="transaction.counterpartyId"
+          label={t.counterparty}
+          required={showForm}
+          layout="inline"
+        >
           {showForm ? (
             <Combobox
               value={draft.counterpartyId}
@@ -819,7 +835,12 @@ export function TransactionForm({
             </ReadValue>
           )}
         </FormField>
-        <FormField label={t.taxFamily} required={showForm} layout="inline">
+        <FormField
+          field="transaction.taxFamily"
+          label={t.taxFamily}
+          required={showForm}
+          layout="inline"
+        >
           {showForm ? (
             <Combobox
               value={draft.taxFamily}
@@ -836,7 +857,12 @@ export function TransactionForm({
             <ReadValue>{tx ? t.families[tx.taxFamily] : null}</ReadValue>
           )}
         </FormField>
-        <FormField label={t.documentType} required={showForm} layout="inline">
+        <FormField
+          field="transaction.documentType"
+          label={t.documentType}
+          required={showForm}
+          layout="inline"
+        >
           {showForm ? (
             <Combobox
               value={draft.documentType}
@@ -857,7 +883,12 @@ export function TransactionForm({
         </FormField>
       </FieldGroup>
       <FieldGroup>
-        <FormField label={t.documentDate} required={showForm} layout="inline">
+        <FormField
+          field="transaction.documentDate"
+          label={t.documentDate}
+          required={showForm}
+          layout="inline"
+        >
           {showForm ? (
             <TextInput
               type="date"
@@ -878,7 +909,12 @@ export function TransactionForm({
             <ReadValue mono>{tx?.documentDate}</ReadValue>
           )}
         </FormField>
-        <FormField label={t.taxPeriod} required={showForm} layout="inline">
+        <FormField
+          field="transaction.taxPeriod"
+          label={t.taxPeriod}
+          required={showForm}
+          layout="inline"
+        >
           {showForm ? (
             <TextInput
               value={draft.taxPeriod}
@@ -891,11 +927,19 @@ export function TransactionForm({
             <ReadValue mono>{tx?.taxPeriod}</ReadValue>
           )}
         </FormField>
-        <FormField label={t.currency} layout="inline">
+        <FormField
+          field="transaction.currency"
+          label={t.currency}
+          layout="inline"
+        >
           <ReadValue mono>IDR</ReadValue>
         </FormField>
         {tx && (
-          <FormField label={t.source} layout="inline">
+          <FormField
+            field="transaction.source"
+            label={t.source}
+            layout="inline"
+          >
             <ReadValue>
               {t.sources[tx.source]} · {t.version} {tx.version}
             </ReadValue>
@@ -936,7 +980,11 @@ export function TransactionForm({
         </Notice>
       )}
       {showForm ? (
-        <FormField label={t.invoiceNumber} required>
+        <FormField
+          field="transaction.invoiceNumber"
+          label={t.invoiceNumber}
+          required
+        >
           <TextInput
             value={draft.invoiceNumber}
             onChange={(e) => set({ invoiceNumber: e.target.value })}
@@ -957,7 +1005,7 @@ export function TransactionForm({
       )}
       {headerFields}
       {showForm ? (
-        <FormField label={t.description}>
+        <FormField field="transaction.description" label={t.description}>
           <TextArea
             value={draft.description}
             onChange={(e) => set({ description: e.target.value })}
@@ -967,7 +1015,7 @@ export function TransactionForm({
         </FormField>
       ) : (
         tx?.description && (
-          <FormField label={t.description}>
+          <FormField field="transaction.description" label={t.description}>
             <ReadValue className="min-h-0 py-0">{tx.description}</ReadValue>
           </FormField>
         )
@@ -1097,6 +1145,7 @@ export function TransactionForm({
         tx && canPrepare && allows(tx.status, "void")
           ? (close) => (
               <MenuItem
+                danger
                 icon={<Ban />}
                 onSelect={() => {
                   close();
@@ -1122,7 +1171,7 @@ export function TransactionForm({
               id: e.id,
               author: e.actorName,
               at: e.createdAt,
-              action: e.action,
+              action: codeLabel(locale, "auditAction", e.action),
             }))}
             canComment={allows(tx.status, "comment")}
             emptyComments={t.noComments}
@@ -1183,6 +1232,15 @@ export function TransactionForm({
             </Button>
             <Button
               type="button"
+              variant={
+                prompt === "void"
+                  ? "danger"
+                  : prompt === "approve"
+                    ? "success"
+                    : prompt === "request_changes"
+                      ? "warning"
+                      : "default"
+              }
               disabled={
                 review.busy ||
                 (prompt === "approve" ? !soleAck : reason.trim().length < 2)
@@ -1211,6 +1269,11 @@ export function TransactionForm({
           </div>
         ) : (
           <FormField
+            field={
+              prompt === "void"
+                ? "transaction.voidReason"
+                : "tax.decisionReason"
+            }
             label={prompt === "void" ? t.voidReason : tax.reasonLabel}
             required
           >

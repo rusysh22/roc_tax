@@ -7,7 +7,11 @@ import {
   type ReactNode,
 } from "react";
 import { Check } from "lucide-react";
+import { fieldInfo, type FieldKey } from "@/i18n/fields";
+import { viewMessages } from "@/i18n/views";
 import { cn } from "@/lib/utils";
+import { useLocale } from "./locale-context";
+import { InfoTip } from "./tooltip";
 
 /**
  * Field context: a label, help text and error wired to one control by id, so
@@ -25,7 +29,8 @@ export function useFieldControl() {
 }
 
 export function FormField({
-  label,
+  field,
+  label: explicitLabel,
   help,
   error,
   required = false,
@@ -34,7 +39,9 @@ export function FormField({
   children,
   id: explicitId,
 }: {
-  label: ReactNode;
+  /** Field dictionary key: supplies the label and the standard info tip. */
+  field: FieldKey;
+  label?: ReactNode;
   help?: ReactNode;
   error?: ReactNode;
   required?: boolean;
@@ -43,6 +50,10 @@ export function FormField({
   children: ReactNode;
   id?: string;
 }) {
+  const locale = useLocale();
+  const info = fieldInfo(locale, field);
+  const label = explicitLabel ?? info.label;
+  const v = viewMessages[locale];
   const generated = useId();
   const id = explicitId ?? `f${generated.replace(/[^a-zA-Z0-9]/g, "")}`;
   const helpId = help ? `${id}-help` : undefined;
@@ -60,20 +71,40 @@ export function FormField({
           className,
         )}
       >
-        <label
-          htmlFor={id}
+        <div
           className={cn(
-            "text-sm font-medium text-foreground",
-            layout === "inline" && "sm:pt-2 sm:text-muted-foreground",
+            "flex items-start gap-1",
+            layout === "inline" && "sm:pt-2",
           )}
         >
-          {label}
+          <label
+            id={`${id}-label`}
+            htmlFor={id}
+            className={cn(
+              "text-sm font-medium text-foreground",
+              layout === "inline" && "sm:text-muted-foreground",
+            )}
+          >
+            {label}
+          </label>
+          {/* Outside the label so the accessible name stays exactly the label. */}
           {required && (
-            <span aria-hidden="true" className="ml-0.5 font-semibold">
+            <span
+              aria-hidden="true"
+              className="-ml-0.5 font-semibold text-danger"
+            >
               *
             </span>
           )}
-        </label>
+          <InfoTip
+            functional={info.help}
+            technical={info.technical}
+            label={v.information}
+            describedBy={`${id}-label`}
+            technicalLabel={v.technicalName}
+            className="mt-0.5"
+          />
+        </div>
         <div className="min-w-0 space-y-1">
           {children}
           {help && (

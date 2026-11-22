@@ -7,9 +7,16 @@ export const roles = [
   "APPROVER",
 ] as const;
 export type Role = (typeof roles)[number];
-export type Permission =
-  "team.manage" | "draft.prepare" | "tax.review" | "tax.approve" | "tax.export";
-const permissions: Record<Role, readonly Permission[]> = {
+export const permissionList = [
+  "team.manage",
+  "draft.prepare",
+  "tax.review",
+  "tax.approve",
+  "tax.export",
+] as const;
+export type Permission = (typeof permissionList)[number];
+/** Single source of truth for the role matrix (also rendered in Settings). */
+export const rolePermissions: Record<Role, readonly Permission[]> = {
   OWNER: ["team.manage"],
   ADMIN: ["team.manage"],
   PREPARER: ["draft.prepare", "tax.export"],
@@ -17,7 +24,7 @@ const permissions: Record<Role, readonly Permission[]> = {
   APPROVER: ["tax.approve", "tax.export"],
 };
 export function can(role: Role, permission: Permission) {
-  return permissions[role].includes(permission);
+  return rolePermissions[role].includes(permission);
 }
 export function canAssign(actor: Role, next: Role) {
   return (

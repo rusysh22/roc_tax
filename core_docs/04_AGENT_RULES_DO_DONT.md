@@ -17,6 +17,7 @@
 13. Use decimal-safe currency arithmetic (`Decimal`/integer minor units as appropriate); do not use binary floating-point for tax money.
 14. Add data minimization, privacy notice, legal agreements, export/delete workflows, data-retention policies.
 15. Maintain exact error states, progress, and event logs; report tests honestly.
+16. Follow `14_UI_STANDARDS.md` for every new field, menu, screen and feature: dictionary-backed `FormField` with a functional + technical info tip, code registry labels/colours for every enum, semantic CTA colours, `ListPage`/`usePaged` with 50 rows and bounded scrolling, bold totals, and header + tabs + line layouts. `tests/unit/ui-standards.test.ts` enforces it.
 
 ## DON'T
 
@@ -31,7 +32,8 @@
 9. DO NOT make quota restrictions client-side only, trust webhook email alone, or accept unsigned provider events.
 10. DO NOT send uploaded documents to a third-party AI provider unless tenant consent/configuration, disclosure, data-processing basis, and region controls are satisfied.
 11. DO NOT permit arbitrary file download paths, unbounded OCR jobs, HTML injection from OCR text, or cross-tenant search leakage.
-12. DO NOT prematurely add microservices, Kubernetes, speculative features, flashy gradients, decorative charts or unapproved color palettes.
+12. DO NOT prematurely add microservices, Kubernetes, speculative features, flashy gradients, decorative charts or unapproved color palettes. Colour is semantic only (blue/green/amber/red/violet/gray as defined in `14_UI_STANDARDS.md`).
+15. DO NOT show technical names (enum values, error codes, env var names, API paths) in labels, menus, badges, options or messages; they belong only in the info tooltip as "Technical name".
 13. DO NOT silently overwrite records or change tax rules retroactively. Always version and preserve audit.
 14. DO NOT claim a feature is complete when it is mocked or blocked by unresolved source verification.
 

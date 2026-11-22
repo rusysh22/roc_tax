@@ -109,7 +109,9 @@ export function Overview({
                   title={module.hint}
                   className="group flex flex-col items-center gap-2.5 rounded-xl p-2 text-center outline-offset-4"
                 >
-                  <span className="flex size-16 items-center justify-center rounded-2xl bg-foreground text-background shadow-md transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:shadow-lg group-active:translate-y-0 sm:size-[4.5rem]">
+                  <span
+                    className={`flex size-16 items-center justify-center rounded-2xl ${module.tile} shadow-md transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:shadow-lg group-active:translate-y-0 sm:size-[4.5rem]`}
+                  >
                     <Icon
                       aria-hidden="true"
                       className="size-7 sm:size-8"
@@ -196,7 +198,7 @@ export function Overview({
                     className="rounded-lg border bg-surface-2 p-4 transition-colors hover:border-foreground/40"
                   >
                     <p className="text-xs text-muted-foreground">{label}</p>
-                    <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">
+                    <p className="mt-1 font-mono text-2xl font-bold tabular-nums">
                       {value}
                     </p>
                   </Link>

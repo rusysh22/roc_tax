@@ -121,7 +121,9 @@ test("draft → evaluate → submit → approve → BPPU XML export → Coretax 
   await expect(preparer.getByText("Tervalidasi").first()).toBeVisible();
   await preparer.getByRole("button", { name: "Ajukan untuk tinjauan" }).click();
   await expect(
-    preparer.locator('[aria-current="step"]', { hasText: "Diajukan" }),
+    preparer.locator('[aria-current="step"]', {
+      hasText: "Menunggu persetujuan",
+    }),
   ).toBeVisible();
   // Segregation of duties: the preparer is never offered approval.
   await expect(
@@ -171,7 +173,7 @@ test("draft → evaluate → submit → approve → BPPU XML export → Coretax 
   await choose(
     outcome,
     "Catat hasil unggah manual Coretax",
-    "Diunggah manual ke Coretax",
+    "Diunggah ke Coretax",
   );
   await outcome
     .getByLabel("Nomor referensi / tanda terima Coretax (opsional)")
@@ -200,7 +202,8 @@ test("standard list view: search facets, filters, export and archive", async ({
   const search = preparer.getByRole("combobox", { name: "Cari…" });
   await search.fill("Konsultan");
   await preparer.getByRole("option", { name: /Nama lawan transaksi/ }).click();
-  await expect(preparer.getByRole("row")).toHaveCount(2); // header + 1 row
+  // header + 1 record + bold totals footer
+  await expect(preparer.locator("table tbody tr")).toHaveCount(1);
   await expect(
     preparer.getByRole("row", { name: /PT Konsultan Contoh Abadi/ }),
   ).toBeVisible();

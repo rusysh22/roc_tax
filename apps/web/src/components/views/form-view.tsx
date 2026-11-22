@@ -19,6 +19,7 @@ import { Popover } from "@/components/ui/menu";
 import { Skeleton } from "@/components/ui/status";
 import { cn } from "@/lib/utils";
 import { Breadcrumbs, ControlPanel, type Crumb } from "./control-panel";
+import { PagedFooter, usePaged } from "./paged";
 import { recordNeighbours } from "./use-list";
 
 export type FormMode = "read" | "edit" | "create";
@@ -386,6 +387,7 @@ export function Chatter({
   const [tab, setTab] = useState<"messages" | "log">("messages");
   const [body, setBody] = useState("");
   const items = tab === "messages" ? comments : log;
+  const paged = usePaged(items);
   return (
     <section
       aria-label={v.chatter}
@@ -450,7 +452,7 @@ export function Chatter({
           </p>
         ) : (
           <ol className="space-y-4">
-            {items.map((item) => (
+            {paged.rows.map((item) => (
               <li key={item.id} className="flex gap-3">
                 <span
                   aria-hidden="true"
@@ -480,6 +482,7 @@ export function Chatter({
             ))}
           </ol>
         )}
+        <PagedFooter paged={paged} v={v} />
       </div>
     </section>
   );

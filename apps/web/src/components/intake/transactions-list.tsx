@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/status";
 import { MenuItem } from "@/components/ui/menu";
 import { ListPage, type ListAction } from "@/components/views/list-page";
 import { NoWorkspace } from "@/components/views/page-state";
-import type { Column } from "@/components/views/list-view";
+import { LIST_PAGE_SIZE, type Column } from "@/components/views/list-view";
 import {
   decodeSearch,
   emptySearch,
@@ -62,7 +62,7 @@ type Page = {
   transactions: TransactionRow[];
 };
 
-const PAGE_SIZE = 80;
+const PAGE_SIZE = LIST_PAGE_SIZE;
 const workflowPresets: Record<string, TransactionStatus[]> = {
   needsWork: ["DRAFT", "NEEDS_REVIEW", "CHANGES_REQUESTED"],
   awaitingApproval: ["VALIDATED", "SUBMITTED"],
@@ -294,7 +294,7 @@ export function TransactionsList({ locale }: { locale: Locale }) {
       cell: (r) => (
         <span className="inline-flex flex-wrap items-center gap-2">
           <span className="font-mono">{r.invoiceNumber}</span>
-          {r.hasDuplicate && <Badge tone="muted">{t.duplicateBadge}</Badge>}
+          {r.hasDuplicate && <Badge tone="amber">{t.duplicateBadge}</Badge>}
         </span>
       ),
     },

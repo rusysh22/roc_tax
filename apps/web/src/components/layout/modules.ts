@@ -29,6 +29,10 @@ export type ModuleDef = {
   label: string;
   hint: string;
   icon: LucideIcon;
+  /** Home-tile colour classes (one semantic colour per module). */
+  tile: string;
+  /** Text colour for the module icon in the sidebar. */
+  accent: string;
   href: string;
   items: MenuItemDef[];
   superadminOnly?: boolean;
@@ -42,6 +46,8 @@ export function appModules(locale: Locale): ModuleDef[] {
   return [
     {
       id: "transactions",
+      tile: "bg-info text-white",
+      accent: "text-info",
       label: t.modTransactions,
       hint: t.modTransactionsHint,
       icon: FileText,
@@ -57,6 +63,8 @@ export function appModules(locale: Locale): ModuleDef[] {
     },
     {
       id: "contacts",
+      tile: "bg-violet text-white",
+      accent: "text-violet",
       label: t.modContacts,
       hint: t.modContactsHint,
       icon: Building2,
@@ -72,6 +80,8 @@ export function appModules(locale: Locale): ModuleDef[] {
     },
     {
       id: "coretax",
+      tile: "bg-success text-white",
+      accent: "text-success",
       label: t.modCoretax,
       hint: t.modCoretaxHint,
       icon: Send,
@@ -87,6 +97,8 @@ export function appModules(locale: Locale): ModuleDef[] {
     },
     {
       id: "settings",
+      tile: "bg-foreground text-background",
+      accent: "text-muted-foreground",
       label: t.modSettings,
       hint: t.modSettingsHint,
       icon: Settings,
@@ -103,6 +115,8 @@ export function appModules(locale: Locale): ModuleDef[] {
     },
     {
       id: "help",
+      tile: "bg-warning text-white",
+      accent: "text-warning",
       label: t.modHelp,
       hint: t.modHelpHint,
       icon: LifeBuoy,
@@ -111,6 +125,8 @@ export function appModules(locale: Locale): ModuleDef[] {
     },
     {
       id: "admin",
+      tile: "bg-danger text-white",
+      accent: "text-danger",
       label: t.modAdmin,
       hint: t.modAdminHint,
       icon: ShieldCheck,

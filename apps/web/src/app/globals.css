@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 /*
- * SerenTax design tokens — intentionally monochrome (black, white, neutral
- * grays). Depth comes from surfaces, borders and type weight, never colour.
+ * SerenTax design tokens. Neutral surfaces with a black brand navbar; colour
+ * is reserved for meaning (see core_docs/14_UI_STANDARDS.md):
+ *   blue = primary action / info, green = success / approved,
+ *   amber = waiting / warning, red = destructive / rejected,
+ *   violet = exported / handed over, gray = draft / inactive.
  */
 :root {
   color-scheme: light;
@@ -15,10 +18,25 @@
   --subtle-foreground: #7a7a77;
   --border: #e3e3e0;
   --border-strong: #c9c9c5;
-  --primary: #0a0a0a;
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
   --accent: #e9e9e6;
-  --ring: #0a0a0a;
+  --ring: #2563eb;
+  --info: #2563eb;
+  --info-soft: #eff6ff;
+  --info-fg: #1d4ed8;
+  --success: #16a34a;
+  --success-soft: #f0fdf4;
+  --success-fg: #15803d;
+  --warning: #d97706;
+  --warning-soft: #fffbeb;
+  --warning-fg: #b45309;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --danger-fg: #b91c1c;
+  --violet: #7c3aed;
+  --violet-soft: #f5f3ff;
+  --violet-fg: #6d28d9;
   --navbar: #0a0a0a;
   --navbar-foreground: #f5f5f4;
   --navbar-muted: #a3a3a0;
@@ -38,10 +56,25 @@
   --subtle-foreground: #8a8a87;
   --border: #282828;
   --border-strong: #3a3a3a;
-  --primary: #f4f4f3;
-  --primary-foreground: #0b0b0b;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
   --accent: #232323;
-  --ring: #f4f4f3;
+  --ring: #60a5fa;
+  --info: #3b82f6;
+  --info-soft: #0f1d3a;
+  --info-fg: #93c5fd;
+  --success: #22c55e;
+  --success-soft: #0b2616;
+  --success-fg: #86efac;
+  --warning: #f59e0b;
+  --warning-soft: #2e1d05;
+  --warning-fg: #fcd34d;
+  --danger: #ef4444;
+  --danger-soft: #3a0f0f;
+  --danger-fg: #fca5a5;
+  --violet: #8b5cf6;
+  --violet-soft: #23123f;
+  --violet-fg: #c4b5fd;
   --navbar: #000000;
   --navbar-foreground: #f4f4f3;
   --navbar-muted: #8f8f8c;
@@ -64,6 +97,21 @@
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-ring: var(--ring);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-fg: var(--info-fg);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-fg: var(--success-fg);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-fg: var(--warning-fg);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-fg: var(--danger-fg);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-violet-fg: var(--violet-fg);
   --color-navbar: var(--navbar);
   --color-navbar-foreground: var(--navbar-foreground);
   --color-navbar-muted: var(--navbar-muted);
@@ -90,6 +138,10 @@
 }
 
 @layer base {
+  /* Fieldsets default to min-width: min-content, which lets wide tables overflow phones. */
+  fieldset {
+    min-width: 0;
+  }
   html {
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
@@ -155,17 +207,16 @@
   .field-control:focus,
   .field-control:focus-visible,
   .field-control[data-open="true"] {
-    @apply border-foreground outline-none;
-    box-shadow: 0 0 0 1px var(--foreground);
+    @apply border-primary outline-none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
   }
   .field-control:disabled,
   .field-control[aria-disabled="true"] {
     @apply cursor-not-allowed bg-muted text-muted-foreground shadow-none;
   }
   .field-control[aria-invalid="true"] {
-    @apply border-foreground;
-    box-shadow: 0 0 0 1px var(--foreground);
-    border-style: dashed;
+    @apply border-danger;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent);
   }
   .num {
     font-variant-numeric: tabular-nums;

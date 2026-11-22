@@ -1,50 +1,22 @@
 import type { Locale } from "@/i18n/messages";
 import { intakeMessages } from "@/i18n/intake";
 import type { TransactionStatus } from "@/lib/intake/state";
-import { Badge } from "@/components/ui/status";
+import { CodeBadge } from "@/components/ui/code-badge";
 
-/** Monochrome status pill; weight and fill encode workflow progress. */
+/** Coloured status badge from the code registry (label + info tip). */
 export function TransactionStatusBadge({
   status,
-  locale,
 }: {
   status: TransactionStatus;
-  locale: Locale;
+  locale?: Locale;
 }) {
-  const label = intakeMessages[locale].statuses[status];
-  switch (status) {
-    case "APPROVED":
-    case "EXPORTED":
-    case "CORETAX_ACCEPTED":
-      return (
-        <Badge tone="solid" dot>
-          {label}
-        </Badge>
-      );
-    case "VALIDATED":
-    case "SUBMITTED":
-      return (
-        <Badge tone="neutral" dot>
-          {label}
-        </Badge>
-      );
-    case "NEEDS_REVIEW":
-    case "CHANGES_REQUESTED":
-    case "CORETAX_REJECTED":
-      return (
-        <Badge tone="muted" dot>
-          {label}
-        </Badge>
-      );
-    case "VOIDED":
-      return (
-        <Badge tone="muted" className="line-through">
-          {label}
-        </Badge>
-      );
-    default:
-      return <Badge tone="outline">{label}</Badge>;
-  }
+  return (
+    <CodeBadge
+      domain="transactionStatus"
+      code={status}
+      className={status === "VOIDED" ? "line-through" : undefined}
+    />
+  );
 }
 
 /** Main workflow pipeline shown in the transaction status bar. */

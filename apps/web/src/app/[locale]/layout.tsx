@@ -4,6 +4,7 @@ import "@fontsource-variable/figtree";
 import { isLocale, locales, messages } from "@/i18n/messages";
 import { themeBootScript } from "@/lib/theme";
 import { ThemeGuard } from "@/components/layout/preferences";
+import { LocaleProvider } from "@/components/ui/locale-context";
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -46,7 +47,7 @@ export default async function LocaleLayout({
       </head>
       <body>
         <ThemeGuard />
-        {children}
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
       </body>
     </html>
   );

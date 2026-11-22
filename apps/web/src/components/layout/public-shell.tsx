@@ -5,6 +5,7 @@ import { accountMessages } from "@/i18n/account";
 import { siteMessages } from "@/i18n/site";
 import { LocaleSwitch, ThemeToggle } from "./preferences";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/ui/brand";
 export function PublicShell({
   locale,
   children,
@@ -28,9 +29,9 @@ export function PublicShell({
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 sm:px-8">
           <Link
             href={`/${locale}`}
-            className="text-xl font-bold tracking-tight"
+            className="flex items-center text-foreground"
           >
-            SerenTax<span aria-hidden="true">.</span>
+            <BrandLogo className="h-7" />
           </Link>
           <nav
             aria-label={t.navigation}
@@ -87,9 +88,9 @@ export function PublicShell({
           <div>
             <Link
               href={`/${locale}`}
-              className="text-lg font-bold tracking-tight"
+              className="inline-flex items-center text-foreground"
             >
-              SerenTax.
+              <BrandLogo className="h-7" />
             </Link>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
               {messages[locale].disclaimer}

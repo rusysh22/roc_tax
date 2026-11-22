@@ -6,19 +6,19 @@ export const ocrMessages = {
     settingsLink: "Pengaturan OCR",
     settingsTitle: "Konfigurasi OCR ruang kerja",
     settingsIntro:
-      "Secara bawaan OCR diatur ke NONE (input manual & spreadsheet). Pemilik atau Admin dapat memilih penyedia yang telah disetujui platform beserta persetujuan pemrosesan data.",
+      "Secara bawaan OCR diatur ke manual (input manual & spreadsheet). Pemilik atau Admin dapat memilih penyedia yang telah disetujui platform beserta persetujuan pemrosesan data.",
     productionBoundary:
-      "OCR AI eksternal produksi berstatus NOT_CONFIGURED sampai penyedia disetujui dan kredensial server disiapkan. Dokumen tidak pernah dikirim ke layanan AI eksternal tanpa persetujuan penyedia dan persetujuan tenant.",
+      "OCR AI eksternal produksi belum dikonfigurasi sampai penyedia disetujui dan kredensial server disiapkan. Dokumen tidak pernah dikirim ke layanan AI eksternal tanpa persetujuan penyedia dan persetujuan tenant.",
     effectiveStatus: "Status efektif OCR",
     effectiveStatuses: {
-      NONE_MANUAL: "NONE · Input manual & spreadsheet saja",
+      NONE_MANUAL: "Manual · Input manual & spreadsheet saja",
       READY: "Siap (mode terkonfigurasi)",
-      NOT_CONFIGURED: "NOT_CONFIGURED · Penyedia/kredensial belum siap",
+      NOT_CONFIGURED: "Belum dikonfigurasi · Penyedia/kredensial belum siap",
       CONSENT_REQUIRED: "Menunggu persetujuan pemrosesan AI tenant",
       VENDOR_NOT_APPROVED: "Diblokir · Vendor belum disetujui",
     },
     chooseProvider: "Penyedia OCR yang diizinkan",
-    noneOption: "NONE · Nonaktifkan AI OCR (manual saja)",
+    noneOption: "Manual · Nonaktifkan AI OCR",
     consentLabel:
       "Saya memahami dan menyetujui pemrosesan dokumen sumber ruang kerja ini melalui penyedia/wilayah yang dipilih sesuai kebijakan retensi tercantum.",
     saveSettings: "Simpan pengaturan OCR",
@@ -42,12 +42,12 @@ export const ocrMessages = {
     displayNameLabel: "Nama tampilan",
     adapterKeyLabel: "Adaptor",
     adapterKeys: {
-      NONE: "NONE (Manual saja)",
-      SYNTHETIC_TEST: "SYNTHETIC_TEST (Uji lokal tanpa jaringan)",
-      EXTERNAL_NOT_CONFIGURED: "EXTERNAL_NOT_CONFIGURED (Eksternal belum siap)",
+      NONE: "Manual saja (tanpa OCR)",
+      SYNTHETIC_TEST: "Uji lokal tanpa jaringan",
+      EXTERNAL_NOT_CONFIGURED: "Penyedia eksternal (belum siap)",
     } satisfies Record<OcrAdapterKey, string>,
     endpointUrlLabel: "URL endpoint HTTPS (opsional, dicek SSRF)",
-    secretRefLabel: "Nama env var rahasia server (opsional, mis. OCR_API_KEY)",
+    secretRefLabel: "Nama variabel rahasia server (opsional)",
     maxPagesLabel: "Maks halaman per dokumen",
     timeoutMsLabel: "Batas waktu (ms)",
     monthlyPageCapLabel: "Batas halaman bulanan per tenant",
@@ -108,15 +108,15 @@ export const ocrMessages = {
       INVALID_ENDPOINT_URL:
         "Endpoint harus menggunakan HTTPS publik yang valid (alamat lokal/privat diblokir untuk mencegah SSRF).",
       INVALID_SECRET_REF:
-        "Nama referensi rahasia harus huruf kapital, angka, dan garis bawah (contoh: OCR_PROVIDER_KEY).",
+        "Nama referensi rahasia harus huruf kapital, angka, dan garis bawah.",
       PROVIDER_NOT_ALLOWED:
         "Penyedia OCR tersebut tidak diaktifkan oleh platform.",
       VENDOR_NOT_APPROVED:
         "Dokumen tidak dapat dikirim karena vendor penyedia belum disetujui.",
       OCR_NOT_CONFIGURED:
-        "Penyedia OCR eksternal berstatus NOT_CONFIGURED pada rilis ini.",
+        "Penyedia OCR eksternal belum dikonfigurasi pada rilis ini.",
       OCR_DISABLED_NONE:
-        "OCR ruang kerja diatur ke NONE. Gunakan input manual atau pilih penyedia di Pengaturan OCR.",
+        "OCR ruang kerja diatur ke manual. Gunakan input manual atau pilih penyedia di Pengaturan OCR.",
       OCR_SECRET_MISSING:
         "Referensi rahasia server untuk penyedia ini belum tersedia di lingkungan server.",
       CONSENT_REQUIRED:
@@ -138,19 +138,19 @@ export const ocrMessages = {
     settingsLink: "OCR settings",
     settingsTitle: "Workspace OCR configuration",
     settingsIntro:
-      "OCR defaults to NONE (manual & spreadsheet intake only). Owners or Admins can select an approved platform provider and record tenant data-processing consent.",
+      "OCR defaults to manual (manual & spreadsheet intake only). Owners or Admins can select an approved platform provider and record tenant data-processing consent.",
     productionBoundary:
-      "Production external AI OCR remains NOT_CONFIGURED until vendor approval and server credentials are supplied. Documents are never sent to external AI without approved vendor settings and tenant consent.",
+      "Production external AI OCR remains unconfigured until vendor approval and server credentials are supplied. Documents are never sent to external AI without approved vendor settings and tenant consent.",
     effectiveStatus: "Effective OCR status",
     effectiveStatuses: {
-      NONE_MANUAL: "NONE · Manual & spreadsheet entry only",
+      NONE_MANUAL: "Manual · Manual & spreadsheet entry only",
       READY: "Ready (configured mode)",
-      NOT_CONFIGURED: "NOT_CONFIGURED · Provider or credentials unavailable",
+      NOT_CONFIGURED: "Not configured · Provider or credentials unavailable",
       CONSENT_REQUIRED: "Awaiting tenant AI processing consent",
       VENDOR_NOT_APPROVED: "Blocked · Vendor not approved",
     },
     chooseProvider: "Allowed OCR provider",
-    noneOption: "NONE · Disable AI OCR (manual only)",
+    noneOption: "Manual · Disable AI OCR",
     consentLabel:
       "I acknowledge and consent to processing this workspace's source documents through the selected provider and region under its stated retention policy.",
     saveSettings: "Save OCR settings",
@@ -175,13 +175,12 @@ export const ocrMessages = {
     displayNameLabel: "Display name",
     adapterKeyLabel: "Adapter",
     adapterKeys: {
-      NONE: "NONE (Manual only)",
-      SYNTHETIC_TEST: "SYNTHETIC_TEST (Local no-egress test adapter)",
-      EXTERNAL_NOT_CONFIGURED:
-        "EXTERNAL_NOT_CONFIGURED (External unconfigured)",
+      NONE: "Manual only (no OCR)",
+      SYNTHETIC_TEST: "Local test (no network)",
+      EXTERNAL_NOT_CONFIGURED: "External provider (not ready)",
     } satisfies Record<OcrAdapterKey, string>,
     endpointUrlLabel: "HTTPS endpoint URL (optional, SSRF-checked)",
-    secretRefLabel: "Server secret env var name (optional, e.g. OCR_API_KEY)",
+    secretRefLabel: "Server secret variable name (optional)",
     maxPagesLabel: "Max pages per document",
     timeoutMsLabel: "Timeout (ms)",
     monthlyPageCapLabel: "Monthly page cap per tenant",
@@ -242,14 +241,14 @@ export const ocrMessages = {
       INVALID_ENDPOINT_URL:
         "Endpoint URL must be a valid public HTTPS URL (loopback and private networks are blocked against SSRF).",
       INVALID_SECRET_REF:
-        "Secret reference must be an uppercase env var name (e.g. OCR_PROVIDER_KEY).",
+        "Secret reference must be an uppercase variable name (letters, digits, underscores).",
       PROVIDER_NOT_ALLOWED: "This OCR provider is not enabled by the platform.",
       VENDOR_NOT_APPROVED:
         "Documents cannot be sent because the vendor has not been approved.",
       OCR_NOT_CONFIGURED:
-        "External OCR provider is NOT_CONFIGURED in this release.",
+        "External OCR provider is not configured in this release.",
       OCR_DISABLED_NONE:
-        "Workspace OCR is set to NONE. Use manual entry or choose an approved provider in OCR settings.",
+        "Workspace OCR is set to manual. Use manual entry or choose an approved provider in OCR settings.",
       OCR_SECRET_MISSING:
         "The configured server secret environment variable is not set.",
       CONSENT_REQUIRED:

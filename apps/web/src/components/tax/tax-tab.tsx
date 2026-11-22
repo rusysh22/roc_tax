@@ -1,5 +1,6 @@
 "use client";
 import { Calculator, Lock } from "lucide-react";
+import { codeLabel } from "@/i18n/codes";
 import type { Locale } from "@/i18n/messages";
 import { taxMessages } from "@/i18n/tax";
 import { intakeMessages } from "@/i18n/intake";
@@ -30,7 +31,9 @@ function Metric({
       <p className="text-xs text-muted-foreground">{label}</p>
       <p
         className={
-          strong ? "font-mono text-lg font-semibold" : "font-mono text-sm"
+          strong
+            ? "font-mono text-lg font-bold"
+            : "font-mono text-sm font-semibold"
         }
       >
         {value}
@@ -88,7 +91,7 @@ export function TaxTab({
       {latest ? (
         <section aria-label={t.ruleLabel} className="space-y-4">
           {latest.evidence.nonProductionWarning && (
-            <Notice tone="strong" role="alert">
+            <Notice tone="danger" role="alert">
               {t.nonProductionBanner}
             </Notice>
           )}
@@ -96,6 +99,7 @@ export function TaxTab({
             <Metric
               label={t.dppLabel}
               value={formatAmountString(latest.dppAmount, locale)}
+              strong
             />
             <Metric
               label={t.taxAmountLabel}
@@ -147,7 +151,7 @@ export function TaxTab({
             </Notice>
           ) : (
             <p className="flex items-center gap-2 text-sm font-medium">
-              <Badge tone="solid" dot>
+              <Badge tone="green" dot>
                 OK
               </Badge>
               {t.noBlockers}
@@ -165,7 +169,11 @@ export function TaxTab({
           className="space-y-5"
         >
           <FieldGroup title={t.panelTitle} columns={2}>
-            <FormField label={t.taxFamilyLabel} layout="inline">
+            <FormField
+              field="transaction.taxFamily"
+              label={t.taxFamilyLabel}
+              layout="inline"
+            >
               <Combobox
                 value={inputs.taxFamily}
                 onChange={(value) =>
@@ -179,7 +187,11 @@ export function TaxTab({
                 labels={comboLabels(locale)}
               />
             </FormField>
-            <FormField label={t.objectCodeLabel} layout="inline">
+            <FormField
+              field="tax.objectCode"
+              label={t.objectCodeLabel}
+              layout="inline"
+            >
               <Combobox
                 value={inputs.objectCode || null}
                 onChange={(value) => setInput({ objectCode: value ?? "" })}
@@ -189,7 +201,11 @@ export function TaxTab({
                 labels={comboLabels(locale)}
               />
             </FormField>
-            <FormField label={t.payrollRefLabel} layout="inline">
+            <FormField
+              field="tax.payrollEvidenceRef"
+              label={t.payrollRefLabel}
+              layout="inline"
+            >
               <TextInput
                 value={inputs.payrollRef}
                 onChange={(e) => setInput({ payrollRef: e.target.value })}
@@ -197,7 +213,11 @@ export function TaxTab({
                 disabled={busy}
               />
             </FormField>
-            <FormField label={t.treatyRefLabel} layout="inline">
+            <FormField
+              field="tax.treatyCertificateRef"
+              label={t.treatyRefLabel}
+              layout="inline"
+            >
               <TextInput
                 value={inputs.treatyRef}
                 onChange={(e) => setInput({ treatyRef: e.target.value })}
@@ -205,7 +225,11 @@ export function TaxTab({
                 disabled={busy}
               />
             </FormField>
-            <FormField label={t.treatyCountryLabel} layout="inline">
+            <FormField
+              field="tax.treatyCountryCode"
+              label={t.treatyCountryLabel}
+              layout="inline"
+            >
               <TextInput
                 value={inputs.treatyCountry}
                 onChange={(e) =>
@@ -216,7 +240,11 @@ export function TaxTab({
                 disabled={busy}
               />
             </FormField>
-            <FormField label={t.overrideNoteLabel} layout="inline">
+            <FormField
+              field="tax.smeOverrideNote"
+              label={t.overrideNoteLabel}
+              layout="inline"
+            >
               <TextInput
                 value={inputs.overrideNote}
                 onChange={(e) => setInput({ overrideNote: e.target.value })}
@@ -253,7 +281,9 @@ export function TaxTab({
                 <p className="text-xs text-muted-foreground">
                   {s.sourceCitation} · {s.approvedBy} ·{" "}
                   {formatDate(new Date(s.approvedAt), locale)}
-                  {s.soleUserExceptionUsed ? " · SOLE_USER_EXCEPTION" : ""}
+                  {s.soleUserExceptionUsed
+                    ? ` · ${codeLabel(locale, "segregationPolicy", "SOLE_USER_EXCEPTION")}`
+                    : ""}
                 </p>
               </li>
             ))}

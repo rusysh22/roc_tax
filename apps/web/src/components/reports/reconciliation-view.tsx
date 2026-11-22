@@ -1,6 +1,8 @@
 "use client";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Download, Scale } from "lucide-react";
+import { codeLabel, codeOptions } from "@/i18n/codes";
+import { CodeBadge } from "@/components/ui/code-badge";
 import type { Locale } from "@/i18n/messages";
 import { reportMessages } from "@/i18n/reports";
 import { intakeMessages } from "@/i18n/intake";
@@ -8,10 +10,9 @@ import { shellMessages } from "@/i18n/shell";
 import { allTaxFamilies } from "@/lib/intake/tax-rules";
 import { transactionSources } from "@/lib/intake/schemas";
 import type { DiscrepancyCode } from "@/lib/reports/schemas";
-import { Badge } from "@/components/ui/status";
 import { ListPage } from "@/components/views/list-page";
 import { NoWorkspace } from "@/components/views/page-state";
-import type { Column } from "@/components/views/list-view";
+import { LIST_PAGE_SIZE, type Column } from "@/components/views/list-view";
 import type { Preset, SearchState, ViewField } from "@/components/views/search";
 import {
   ApiFailure,
@@ -61,7 +62,7 @@ type Payload = {
   rows: Row[];
 };
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = LIST_PAGE_SIZE;
 
 function recentPeriods(count: number) {
   const now = new Date();
@@ -154,7 +155,8 @@ export function ReconciliationView({ locale }: { locale: Locale }) {
         label: intake.taxFamily,
         type: "enum",
         value: (r) => r.taxFamily,
-        options: allTaxFamilies.map((f) => ({ value: f, label: f })),
+        display: (r) => codeLabel(locale, "taxFamily", r.taxFamily),
+        options: codeOptions(locale, "taxFamily", allTaxFamilies),
         filterable: true,
         groupable: true,
         single: true,
@@ -184,10 +186,11 @@ export function ReconciliationView({ locale }: { locale: Locale }) {
         label: intake.status,
         type: "enum",
         value: (r) => r.status,
+        display: (r) => codeLabel(locale, "transactionStatus", r.status),
         groupable: true,
       },
     ],
-    [t, intake, data?.companies],
+    [t, intake, data?.companies, locale],
   );
 
   const presets = useMemo<Preset<Row>[]>(
@@ -261,9 +264,7 @@ export function ReconciliationView({ locale }: { locale: Locale }) {
       header: t.columns.coretaxOutcome,
       cell: (r) =>
         r.coretaxOutcome ? (
-          <Badge tone="neutral">
-            {r.coretaxOutcome.replace("CORETAX_", "")}
-          </Badge>
+          <CodeBadge domain="coretaxOutcome" code={r.coretaxOutcome} />
         ) : (
           "—"
         ),
@@ -272,11 +273,7 @@ export function ReconciliationView({ locale }: { locale: Locale }) {
     {
       key: "discrepancy",
       header: t.columns.discrepancy,
-      cell: (r) => (
-        <Badge tone={r.discrepancy === "NONE" ? "solid" : "muted"} dot>
-          {t.discrepancies[r.discrepancy]}
-        </Badge>
-      ),
+      cell: (r) => <CodeBadge domain="discrepancy" code={r.discrepancy} />,
     },
   ];
 
@@ -335,7 +332,7 @@ export function ReconciliationView({ locale }: { locale: Locale }) {
                   >
                     {label}
                   </p>
-                  <p className="mt-1 font-mono text-xl font-semibold tabular-nums">
+                  <p className="mt-1 font-mono text-xl font-bold tabular-nums">
                     {value}
                   </p>
                 </div>

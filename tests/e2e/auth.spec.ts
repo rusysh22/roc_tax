@@ -153,6 +153,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
   expect(replay.remainingTotal).toBe(3);
   await page.reload();
   await expect(trialPanel).toContainText("Trial active.");
+  await page.getByRole("tab", { name: "Workspaces", exact: true }).click();
   await page
     .getByLabel("Workspace name", { exact: true })
     .fill("Synthetic browser workspace");
@@ -162,6 +163,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
   await page
     .getByRole("button", { name: "Create workspace", exact: true })
     .click();
+  await page.getByRole("tab", { name: /^Team/ }).click();
   await expect(
     page.getByRole("heading", { name: "Team", exact: true }),
   ).toBeVisible();
@@ -196,6 +198,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
   await expect(page.getByTestId("account-feedback")).toContainText(
     "Changes saved",
   );
+  await page.getByRole("tab", { name: /^Team/ }).click();
   await page.getByLabel("Email", { exact: true }).fill(invitedEmail);
   await page
     .getByRole("button", { name: "Invite member", exact: true })
@@ -231,6 +234,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
     await memberPage
       .getByRole("link", { name: "Manage workspaces", exact: true })
       .click();
+    await expect(memberPage.getByRole("tab", { name: /^Team/ })).toHaveCount(0);
     await expect(
       memberPage.getByRole("heading", { name: "Team", exact: true }),
     ).toHaveCount(0);
@@ -397,7 +401,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
       }),
     ).toBeVisible();
     await expect(
-      memberPage.getByText("NONE · Manual & spreadsheet entry only"),
+      memberPage.getByText("Manual · Manual & spreadsheet entry only"),
     ).toBeVisible();
     await memberPage.goto(`/en/app/transactions/${txId}`);
     // OCR and tax review live in the form's notebook tabs.
@@ -450,7 +454,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
       .click();
     await expect(
       memberPage
-        .getByRole("option", { name: /Blocked \(TEMPLATE_UNVERIFIED\)/ })
+        .getByRole("option", { name: /Blocked \(template not verified\)/ })
         .first(),
     ).toBeVisible();
     await memberPage.keyboard.press("Escape");
@@ -467,12 +471,12 @@ test("verified signup, profile, workspace invitation and password recovery throu
     await memberPage.goto("/en/app/settings/billing");
     await expect(
       memberPage.getByRole("heading", {
-        name: "Workspace Subscription & Licensing",
+        name: "Subscription & license",
         exact: true,
       }),
     ).toBeVisible();
     await expect(
-      memberPage.getByText("BILLING_NOT_CONFIGURED / SAAS_LICENSING_PENDING"),
+      memberPage.getByText("Paid plans are not available yet"),
     ).toBeVisible();
     const forbiddenOverviewAdmin = await memberPage.request.get(
       "/api/admin/overview",
@@ -524,6 +528,9 @@ test("verified signup, profile, workspace invitation and password recovery throu
       200,
     );
     page.once("dialog", (dialog) => dialog.accept());
+    await page
+      .getByRole("tab", { name: "Security & sessions", exact: true })
+      .click();
     await page
       .getByRole("button", { name: "End other sessions", exact: true })
       .click();

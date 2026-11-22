@@ -2,6 +2,9 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Power, PowerOff, ScanText } from "lucide-react";
+import type { FieldKey } from "@/i18n/fields";
+import { codeLabel, codeOptions } from "@/i18n/codes";
+import { CodeBadge } from "@/components/ui/code-badge";
 import type { Locale } from "@/i18n/messages";
 import { ocrMessages } from "@/i18n/ocr";
 import { shellMessages } from "@/i18n/shell";
@@ -175,7 +178,11 @@ export function OcrProvidersList({ locale }: { locale: Locale }) {
     {
       key: "adapter",
       header: t.adapterKeyLabel,
-      cell: (p) => <span className="font-mono text-xs">{p.adapterKey}</span>,
+      cell: (p) => (
+        <span className="text-xs">
+          {codeLabel(locale, "ocrAdapter", p.adapterKey)}
+        </span>
+      ),
     },
     {
       key: "secret",
@@ -193,11 +200,11 @@ export function OcrProvidersList({ locale }: { locale: Locale }) {
       header: t.enabledLabel,
       cell: (p) =>
         p.enabled ? (
-          <Badge tone="solid" dot>
+          <Badge tone="green" dot>
             {v.active}
           </Badge>
         ) : (
-          <Badge tone="muted">{v.archived}</Badge>
+          <Badge tone="gray">{v.archived}</Badge>
         ),
     },
   ];
@@ -257,9 +264,10 @@ export function OcrProvidersList({ locale }: { locale: Locale }) {
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="font-semibold">{t.jobHealthTitle}:</span>
               {Object.entries(health).map(([status, count]) => (
-                <Badge key={status} tone="outline">
-                  {status} · {count}
-                </Badge>
+                <span key={status} className="inline-flex items-center gap-1">
+                  <CodeBadge domain="ocrJobStatus" code={status} info={false} />
+                  <span className="font-semibold tabular-nums">{count}</span>
+                </span>
               ))}
             </div>
           )}
@@ -337,7 +345,11 @@ export function OcrProviderForm({
     label: string,
     props: Record<string, unknown> = {},
   ) => (
-    <FormField label={label} layout="inline">
+    <FormField
+      field={`ocrProvider.${key}` as FieldKey}
+      label={label}
+      layout="inline"
+    >
       <TextInput
         value={String(draft[key] ?? "")}
         onChange={(e) =>
@@ -347,8 +359,13 @@ export function OcrProviderForm({
       />
     </FormField>
   );
-  const readField = (label: string, value: React.ReactNode, mono = false) => (
-    <FormField label={label} layout="inline">
+  const readField = (
+    field: FieldKey,
+    label: string,
+    value: React.ReactNode,
+    mono = false,
+  ) => (
+    <FormField field={field} label={label} layout="inline">
       <ReadValue mono={mono}>{value}</ReadValue>
     </FormField>
   );
@@ -428,11 +445,11 @@ export function OcrProviderForm({
             label={t.displayNameLabel}
             aside={
               record.enabled ? (
-                <Badge tone="solid" dot>
+                <Badge tone="green" dot>
                   {v.active}
                 </Badge>
               ) : (
-                <Badge tone="muted">{v.archived}</Badge>
+                <Badge tone="gray">{v.archived}</Badge>
               )
             }
           >
@@ -440,35 +457,70 @@ export function OcrProviderForm({
           </SheetTitle>
           <div className="grid gap-x-12 gap-y-6 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              {readField(t.slugLabel, record.slug, true)}
-              {readField(t.adapterKeyLabel, t.adapterKeys[record.adapterKey])}
-              {readField(t.endpointUrlLabel, record.endpointUrl, true)}
+              {readField("ocrProvider.slug", t.slugLabel, record.slug, true)}
               {readField(
+                "ocrProvider.adapterKey",
+                t.adapterKeyLabel,
+                t.adapterKeys[record.adapterKey],
+              )}
+              {readField(
+                "ocrProvider.endpointUrl",
+                t.endpointUrlLabel,
+                record.endpointUrl,
+                true,
+              )}
+              {readField(
+                "ocrProvider.secretRef",
                 t.secretRefLabel,
                 record.secretRef
                   ? `${record.secretRef} · ${record.secretConfigured ? t.secretReady : t.secretMissing}`
                   : t.noSecretNeeded,
                 true,
               )}
-              {readField(t.modelLabel, record.model, true)}
-              {readField(t.regionLabel, record.region, true)}
+              {readField("ocrProvider.model", t.modelLabel, record.model, true)}
+              {readField(
+                "ocrProvider.region",
+                t.regionLabel,
+                record.region,
+                true,
+              )}
             </FieldGroup>
             <FieldGroup title={t.monthlyPageCapLabel}>
-              {readField(t.maxPagesLabel, record.maxPages)}
-              {readField(t.timeoutMsLabel, record.timeoutMs)}
-              {readField(t.monthlyPageCapLabel, record.monthlyPageCap)}
               {readField(
+                "ocrProvider.maxPages",
+                t.maxPagesLabel,
+                record.maxPages,
+              )}
+              {readField(
+                "ocrProvider.timeoutMs",
+                t.timeoutMsLabel,
+                record.timeoutMs,
+              )}
+              {readField(
+                "ocrProvider.monthlyPageCap",
+                t.monthlyPageCapLabel,
+                record.monthlyPageCap,
+              )}
+              {readField(
+                "ocrProvider.monthlySpendCapIdr",
                 t.monthlySpendCapLabel,
                 record.monthlySpendCapIdr,
                 true,
               )}
               {readField(
+                "ocrProvider.estimatedCostPerPageIdr",
                 t.costPerPageLabel,
                 record.estimatedCostPerPageIdr,
                 true,
               )}
-              {readField(t.retentionPolicyLabel, record.retentionPolicy, true)}
               {readField(
+                "ocrProvider.retentionPolicy",
+                t.retentionPolicyLabel,
+                record.retentionPolicy,
+                true,
+              )}
+              {readField(
+                "ocrProvider.vendorApproved",
                 t.vendorApprovedLabel,
                 record.vendorApproved ? v.yes : v.no,
               )}
@@ -487,7 +539,7 @@ export function OcrProviderForm({
           disabled={saving}
         >
           {error && (
-            <Notice tone="strong" role="alert">
+            <Notice tone="danger" role="alert">
               {error}
             </Notice>
           )}
@@ -500,16 +552,17 @@ export function OcrProviderForm({
                 autoFocus: creating,
               })}
               {textField("displayName", t.displayNameLabel, { maxLength: 120 })}
-              <FormField label={t.adapterKeyLabel} layout="inline">
+              <FormField
+                field="ocrProvider.adapterKey"
+                label={t.adapterKeyLabel}
+                layout="inline"
+              >
                 <Combobox
                   value={draft.adapterKey}
                   onChange={(value) =>
                     value && set({ adapterKey: value as OcrAdapterKey })
                   }
-                  options={ocrAdapterKeys.map((k) => ({
-                    value: k,
-                    label: t.adapterKeys[k],
-                  }))}
+                  options={codeOptions(locale, "ocrAdapter", ocrAdapterKeys)}
                   labels={comboLabels(locale)}
                 />
               </FormField>
@@ -549,7 +602,10 @@ export function OcrProviderForm({
               })}
             </FieldGroup>
           </div>
-          <FormField label={t.processorNoticeLabel}>
+          <FormField
+            field="ocrProvider.processorNotice"
+            label={t.processorNoticeLabel}
+          >
             <TextArea
               value={draft.processorNotice}
               onChange={(e) => set({ processorNotice: e.target.value })}

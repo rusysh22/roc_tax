@@ -1,6 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
+import { codeLabel, codeOptions } from "@/i18n/codes";
+import { fieldInfo } from "@/i18n/fields";
+import { Combobox } from "@/components/ui/combobox";
+import { comboLabels } from "@/components/views/page-state";
+import { CodeBadge } from "@/components/ui/code-badge";
 import type { Locale } from "@/i18n/messages";
 import { reportMessages } from "@/i18n/reports";
 import { formatDate } from "@/i18n/format";
@@ -279,6 +284,7 @@ export function AdminOverviewView({
               <h2 className="text-lg font-semibold">{t.adminOrgsTitle}</h2>
               <div className="w-72">
                 <Field
+                  field="admin.inspectReason"
                   label={t.inspectReasonPlaceholder}
                   value={inspectReason}
                   onChange={(e) => setInspectReason(e.target.value)}
@@ -319,7 +325,10 @@ export function AdminOverviewView({
                         {org.transactionCount} / {org.exportBatchCount}
                       </td>
                       <td className="p-3">
-                        <StatusBadge>{org.licenseStatus}</StatusBadge>
+                        <CodeBadge
+                          domain="licenseStatus"
+                          code={org.licenseStatus}
+                        />
                       </td>
                       <td className="p-3">
                         {org.activeSupportGrantId ? (
@@ -398,30 +407,19 @@ export function AdminOverviewView({
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">{t.adminJobsTitle}</h2>
-          <select
-            aria-label={t.adminJobsTitle}
-            value={jobStatus}
-            onChange={(e) => {
-              const next = e.target.value;
-              setJobStatus(next);
-              void load(orgPage, 1, next);
-            }}
-            className="min-h-10 rounded-md border bg-background px-3 text-xs"
-          >
-            <option value="">ALL</option>
-            {[
-              "QUEUED",
-              "RUNNING",
-              "SUCCEEDED",
-              "FAILED_RETRYABLE",
-              "DEAD_LETTER",
-              "CANCELLED",
-            ].map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          <div className="w-60">
+            <Combobox
+              aria-label={fieldInfo(locale, "admin.jobStatus").label}
+              value={jobStatus || null}
+              onChange={(value) => {
+                const next = value ?? "";
+                setJobStatus(next);
+                void load(orgPage, 1, next);
+              }}
+              options={codeOptions(locale, "ocrJobStatus")}
+              labels={comboLabels(locale)}
+            />
+          </div>
         </div>
 
         <div className="scroll-thin overflow-x-auto rounded-xl border bg-surface shadow-xs">
@@ -453,11 +451,12 @@ export function AdminOverviewView({
                     </div>
                   </td>
                   <td className="p-3">
-                    {job.providerSlug} ({job.adapterKey})
+                    {job.providerSlug} (
+                    {codeLabel(locale, "ocrAdapter", job.adapterKey)})
                   </td>
                   <td className="p-3">
-                    <StatusBadge>{job.status}</StatusBadge> ({job.attemptCount}/
-                    {job.maxAttempts})
+                    <CodeBadge domain="ocrJobStatus" code={job.status} /> (
+                    {job.attemptCount}/{job.maxAttempts})
                   </td>
                   <td className="p-3">
                     <div>{job.errorCode ?? "-"}</div>

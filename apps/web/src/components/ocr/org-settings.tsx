@@ -1,6 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
+import { codeLabel } from "@/i18n/codes";
+import { Combobox } from "@/components/ui/combobox";
+import { FormField } from "@/components/ui/field";
+import { comboLabels } from "@/components/views/page-state";
 import type { Locale } from "@/i18n/messages";
 import { ocrMessages } from "@/i18n/ocr";
 import { siteMessages } from "@/i18n/site";
@@ -185,24 +189,25 @@ export function OrgOcrSettingsView({ locale }: { locale: Locale }) {
           onSubmit={submit}
           className="space-y-5 rounded-xl border bg-surface p-5 shadow-xs"
         >
-          <label className="block space-y-2 text-sm font-medium">
-            <span>{t.chooseProvider}</span>
-            <select
+          <FormField field="ocr.provider" label={t.chooseProvider} required>
+            <Combobox
               value={selectedSlug}
-              onChange={(e) => {
-                setSelectedSlug(e.target.value);
-                if (e.target.value === "none") setConsent(false);
+              onChange={(value) => {
+                const next = value ?? "none";
+                setSelectedSlug(next);
+                if (next === "none") setConsent(false);
               }}
-              className="field-control"
-            >
-              <option value="none">{t.noneOption}</option>
-              {data.allowedProviders.map((p) => (
-                <option key={p.slug} value={p.slug}>
-                  {p.displayName} ({p.adapterKey}) · {p.region}
-                </option>
-              ))}
-            </select>
-          </label>
+              options={[
+                { value: "none", label: t.noneOption },
+                ...data.allowedProviders.map((p) => ({
+                  value: p.slug,
+                  label: p.displayName,
+                  description: `${codeLabel(locale, "ocrAdapter", p.adapterKey)} · ${p.region}`,
+                })),
+              ]}
+              labels={comboLabels(locale)}
+            />
+          </FormField>
 
           {chosenProvider && (
             <div className="space-y-2 rounded-md border bg-muted/30 p-4 text-xs leading-6">

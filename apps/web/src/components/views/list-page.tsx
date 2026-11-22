@@ -10,6 +10,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import type { FieldKey } from "@/i18n/fields";
 import type { Locale } from "@/i18n/messages";
 import { fmt, viewMessages } from "@/i18n/views";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import { EmptyState, Skeleton } from "@/components/ui/status";
 import { useToast } from "@/components/ui/toast";
 import { ControlPanel } from "./control-panel";
 import { csvFileName, downloadCsv } from "./csv";
-import { ListView, Pager, type Column } from "./list-view";
+import { LIST_PAGE_SIZE, ListView, Pager, type Column } from "./list-view";
 import {
   applySearch,
   emptySearch,
@@ -36,14 +37,24 @@ export type ListAction<R> = {
   id: string;
   label: string;
   icon?: ReactNode;
+  /** Destructive action: menu item and confirm button are red. */
+  danger?: boolean;
   /** Runs for the selected records; return a success message or nothing. */
   run: (records: R[], input?: string) => Promise<string | void>;
   visible?: (records: R[]) => boolean;
-  confirm?: { title: string; body: string; label?: string };
+  confirm?: {
+    title: string;
+    body: string;
+    label?: string;
+    /** Confirm button colour; defaults to danger (red). */
+    tone?: "default" | "danger" | "warning" | "success";
+  };
   /** Asks for a required text (e.g. a reason) before running. */
   prompt?: {
     title: string;
     label: string;
+    /** Field dictionary key for the info tip (defaults to common.reason). */
+    field?: FieldKey;
     body?: string;
     confirmLabel?: string;
   };
@@ -70,7 +81,11 @@ export function standardActions<R>(
       label: v.archive,
       icon: <Archive />,
       visible: (rows) => rows.some((r) => !isArchived(r)),
-      confirm: { title: v.confirmArchiveTitle, body: v.confirmArchiveBody },
+      confirm: {
+        title: v.confirmArchiveTitle,
+        body: v.confirmArchiveBody,
+        tone: "warning",
+      },
       run: async (rows) => {
         for (const row of rows.filter((r) => !isArchived(r)))
           await options.archive!(row);
@@ -93,6 +108,7 @@ export function standardActions<R>(
     actions.push({
       id: "delete",
       label: v.delete,
+      danger: true,
       icon: <Trash2 />,
       confirm: { title: v.confirmDeleteTitle, body: v.confirmDeleteBody },
       run: async (rows) => {
@@ -159,7 +175,7 @@ export function ListPage<R>({
   emptyTitle,
   emptyHint,
   banner,
-  pageSize = 80,
+  pageSize = LIST_PAGE_SIZE,
   initialSearch = emptySearch,
   onSearchChange,
   rowClassName,
@@ -331,6 +347,7 @@ export function ListPage<R>({
             visibleActions.map((action) => (
               <MenuItem
                 key={action.id}
+                danger={action.danger}
                 icon={action.icon}
                 disabled={busy}
                 onSelect={() => {
@@ -492,6 +509,7 @@ export function ListPage<R>({
         title={pending?.confirm?.title ?? ""}
         body={pending?.confirm?.body}
         confirmLabel={pending?.confirm?.label ?? pending?.label ?? v.confirm}
+        tone={pending?.confirm?.tone ?? "danger"}
         cancelLabel={v.cancel}
         busy={busy}
         onConfirm={() => pending && void runAction(pending)}
@@ -525,7 +543,11 @@ export function ListPage<R>({
           </>
         }
       >
-        <FormField label={pending?.prompt?.label ?? ""} required>
+        <FormField
+          field={pending?.prompt?.field ?? "common.reason"}
+          label={pending?.prompt?.label ?? ""}
+          required
+        >
           <TextArea
             value={promptText}
             onChange={(event) => setPromptText(event.target.value)}
