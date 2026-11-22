@@ -168,7 +168,7 @@ export function OrgBillingView({ locale }: { locale: Locale }) {
   return (
     <div className="max-w-4xl space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold">{t.orgTitle}</h1>
+        <h1 className="text-2xl font-semibold">{t.orgTitle}</h1>
         <p className="text-sm leading-6 text-muted-foreground">{t.orgIntro}</p>
       </div>
 
@@ -312,7 +312,7 @@ export function OrgBillingView({ locale }: { locale: Locale }) {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-lg border p-6">
+      <section className="space-y-4 rounded-xl border bg-surface p-6 shadow-xs">
         <h2 className="text-lg font-semibold">{t.activateTitle}</h2>
         {!canManage ? (
           <p role="alert" className="text-xs text-muted-foreground">

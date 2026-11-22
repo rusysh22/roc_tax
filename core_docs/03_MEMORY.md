@@ -31,7 +31,9 @@ Each batch must maintain this file with the headings below. Never store password
 
 ### Current phase
 
-- Batch 10 implemented on 2026-11-17. Verification and handoff are in `10_BATCH_REPORT.md`. Docker Desktop WSL2 blocker remains an endpoint `DenyDeviceClasses` Group Policy; native PostgreSQL testing continues independently.
+- Batch 10 implemented on 2026-11-17. Verification and handoff are in `10_BATCH_REPORT.md`.
+- 2026-11-22 local readiness pass (not Batch 11): subscription-entitled creation via `EntitledUsage`, default workspace on sign-in, synthetic billing key derived from server secret, UI/copy fixes, `npm run db:seed:dev` demo workspace, and core-flow browser E2E. Details in `13_DECISIONS_AND_OPEN_ITEMS.md`.
+- 2026-11-22 UI redesign: monochrome design system with Figtree, Odoo-style shell (module home, navbar, collapsible sidebar/drawer), and the standard ListPage/FormPage/Wizard + searchable Combobox framework used by all CRUD screens; theme/language bugs fixed. See `13_DECISIONS_AND_OPEN_ITEMS.md`. Docker Desktop WSL2 blocker remains an endpoint `DenyDeviceClasses` Group Policy; native PostgreSQL testing continues independently.
 
 ### Completed batches
 
@@ -60,6 +62,9 @@ Each batch must maintain this file with the headings below. Never store password
 - Trial creation locks organization then account; persistence, receipt and audit commit together. Ledger has no draft/organization cascade, unique account/day and idempotency keys, and slots constrained to 1–3. Activation and ledger updates are blocked by database triggers.
 - Company and counterparty tax identifiers (NPWP, NIK, NITKU, foreign TIN) are encrypted with AES-256-GCM using tenant+field AAD, indexed per workspace with HMAC-SHA256 for duplicate checks, and never returned in plaintext by list/detail endpoints. Format checks are structural only, never claimed as live DJP lookups.
 - Manual transaction creation uses `trialService.create`; validation or unacknowledged duplicate failures abort inside the transaction before consuming quota. Edits, comments, document attachments, and voiding do not consume or refund trial quota. PPh 21 and PPh 26 families are locked in invoice intake because they require payroll or treaty facts beyond an invoice.
+- Transaction creation uses exactly one quota source: a verified license (signed `MONTHLY_TRANSACTIONS`, Jakarta month, `null` = unlimited, absent = fail closed, non-refundable `EntitledUsage` receipts) or, without one, the unchanged trial ledger.
+- All in-app CRUD screens use the shared view framework in `components/views` (ListPage, FormPage, Wizard) and the searchable `Combobox`; transactions are voided, never archived or deleted; master data hard-delete only when unused.
+- New sessions default to the last-used still-valid workspace (else the oldest membership); membership is still re-verified on every request.
 - Monetary values use `Decimal(20,2)` and quantities `Decimal(18,4)` with exact bigint fixed-point arithmetic; line products requiring sub-cent rounding are rejected until a rule-versioned rounding policy is approved.
 
 ### Open blockers

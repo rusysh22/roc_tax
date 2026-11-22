@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
-  testIgnore: "auth.spec.ts",
+  // auth.spec.ts and core-flow.spec.ts run under their own configs.
+  testIgnore: ["auth.spec.ts", "core-flow.spec.ts"],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

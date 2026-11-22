@@ -4,6 +4,32 @@ import type { PrismaClient } from "../../generated/prisma/client";
 import { authConfiguration } from "./config";
 import type { Mail } from "./mail";
 import { mailMessages } from "../../i18n/mail";
+/**
+ * Default workspace for a new session: the user's most recently used workspace
+ * (if still a member), otherwise their oldest membership. Every protected
+ * request still re-verifies membership, so this only removes the need to
+ * re-select a workspace after each sign-in; it never grants access.
+ */
+export async function defaultWorkspaceFor(db: PrismaClient, userId: string) {
+  const memberships = await db.membership.findMany({
+    where: { userId },
+    select: { organizationId: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (memberships.length === 0) return null;
+  const allowed = new Set(memberships.map((m) => m.organizationId));
+  const recent = await db.session.findMany({
+    where: { userId, activeOrganizationId: { not: null } },
+    select: { activeOrganizationId: true },
+    orderBy: { updatedAt: "desc" },
+    take: 10,
+  });
+  const lastUsed = recent.find(
+    (row) => row.activeOrganizationId && allowed.has(row.activeOrganizationId),
+  );
+  return lastUsed?.activeOrganizationId ?? memberships[0].organizationId;
+}
+
 export function createAuth(
   db: PrismaClient,
   deliver: (mail: Mail) => Promise<void>,
@@ -50,6 +76,28 @@ export function createAuth(
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60,
       cookieCache: { enabled: false },
+      additionalFields: {
+        activeOrganizationId: {
+          type: "string",
+          required: false,
+          input: false,
+        },
+      },
+    },
+    databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            const activeOrganizationId = await defaultWorkspaceFor(
+              db,
+              session.userId,
+            );
+            return activeOrganizationId
+              ? { data: { ...session, activeOrganizationId } }
+              : undefined;
+          },
+        },
+      },
     },
     rateLimit: {
       enabled: true,

@@ -1,11 +1,11 @@
-import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { getAuth } from "@/server/auth";
-import { getDatabase } from "@/server/database";
+import { ShieldAlert } from "lucide-react";
 import { isLocale } from "@/i18n/messages";
 import { accountMessages } from "@/i18n/account";
 import { ocrMessages } from "@/i18n/ocr";
 import { AppShell } from "@/components/layout/app-shell";
+import { EmptyState } from "@/components/ui/status";
+import { shellSession } from "@/server/shell/session";
 
 export const dynamic = "force-dynamic";
 
@@ -18,35 +18,27 @@ export default async function AdminLayout({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  let session;
-  try {
-    session = await getAuth().api.getSession({
-      headers: await headers(),
-      query: { disableCookieCache: true },
-    });
-  } catch {
+  const session = await shellSession();
+  if (session.state === "unavailable")
     return (
       <main className="p-8" role="alert">
         {accountMessages[locale].unavailable}
       </main>
     );
-  }
-  if (!session) redirect(`/${locale}/auth/sign-in`);
-  if (!session.user.emailVerified) redirect(`/${locale}/auth/verify`);
-
-  const user = await getDatabase().user.findUnique({
-    where: { id: session.user.id },
-    select: { platformRole: true },
-  });
-  if (user?.platformRole !== "SUPERADMIN") {
-    return (
-      <AppShell locale={locale}>
-        <div role="alert" className="max-w-xl rounded-lg border p-6 text-sm">
-          {ocrMessages[locale].forbiddenAdmin}
+  if (session.state === "anonymous") redirect(`/${locale}/auth/sign-in`);
+  if (session.state === "unverified") redirect(`/${locale}/auth/verify`);
+  return (
+    <AppShell locale={locale} user={session.user}>
+      {session.user.superadmin ? (
+        children
+      ) : (
+        <div role="alert">
+          <EmptyState
+            icon={<ShieldAlert />}
+            title={ocrMessages[locale].forbiddenAdmin}
+          />
         </div>
-      </AppShell>
-    );
-  }
-
-  return <AppShell locale={locale}>{children}</AppShell>;
+      )}
+    </AppShell>
+  );
 }

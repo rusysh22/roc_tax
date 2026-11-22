@@ -26,6 +26,9 @@ export const importMessages = {
     duplicateRows: "Baris dengan peringatan duplikat",
     downloadErrorReport: "Unduh laporan kesalahan (.csv)",
     commitButton: "Impor baris valid (gunakan 1 kuota trial)",
+    commitButtonEntitled: "Impor semua baris valid (kuota langganan)",
+    entitledNotice:
+      "Ruang kerja ini memiliki langganan aktif: seluruh baris valid disimpan sekaligus dalam satu transaksi database, dalam batas kuota transaksi bulanan paket Anda.",
     acknowledgeDuplicates:
       "Saya sudah memeriksa peringatan duplikat pada pratinjau ini dan ingin tetap mengimpor baris valid.",
     trialSingleRowNotice:
@@ -109,6 +112,10 @@ export const importMessages = {
         "Terdapat peringatan invoice duplikat. Centang konfirmasi duplikat jika ingin tetap mengimpor.",
       TRIAL_SINGLE_ROW_LIMIT:
         "Kuota uji coba hanya mengizinkan maksimal 1 transaksi baru per hari Jakarta. Tidak ada baris yang disimpan secara parsial.",
+      MONTHLY_LIMIT:
+        "Kuota transaksi bulanan paket langganan tidak mencukupi untuk seluruh baris valid. Tidak ada baris yang disimpan.",
+      ENTITLEMENT_MISSING:
+        "Lisensi langganan tidak memuat hak MONTHLY_TRANSACTIONS yang valid. Hubungi admin penagihan.",
       IDEMPOTENCY_CONFLICT:
         "Kunci permintaan batch sudah digunakan untuk berkas atau pemetaan berbeda.",
       UNKNOWN_COMPANY: "Pilih perusahaan aktif dari ruang kerja ini.",
@@ -139,6 +146,9 @@ export const importMessages = {
     duplicateRows: "Rows with duplicate warnings",
     downloadErrorReport: "Download error report (.csv)",
     commitButton: "Import valid row (uses 1 trial slot)",
+    commitButtonEntitled: "Import all valid rows (subscription quota)",
+    entitledNotice:
+      "This workspace has an active subscription: all valid rows are saved together in one database transaction, within your plan's monthly transaction quota.",
     acknowledgeDuplicates:
       "I have reviewed the duplicate warnings in this preview and want to import the valid row anyway.",
     trialSingleRowNotice:
@@ -220,6 +230,10 @@ export const importMessages = {
         "Duplicate invoice warnings were found. Check the duplicate confirmation box if you still want to import.",
       TRIAL_SINGLE_ROW_LIMIT:
         "The account trial permits at most 1 new transaction per Jakarta day. No partial rows were saved.",
+      MONTHLY_LIMIT:
+        "Your plan's remaining monthly transaction quota is not enough for all valid rows. No rows were saved.",
+      ENTITLEMENT_MISSING:
+        "The subscription license has no valid MONTHLY_TRANSACTIONS entitlement. Contact your billing admin.",
       IDEMPOTENCY_CONFLICT:
         "This batch request key was already used with a different file or mapping.",
       UNKNOWN_COMPANY: "Choose an active company from this workspace.",

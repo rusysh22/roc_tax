@@ -1,6 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
+import "@fontsource-variable/figtree";
 import { isLocale, locales, messages } from "@/i18n/messages";
+import { themeBootScript } from "@/lib/theme";
+import { ThemeGuard } from "@/components/layout/preferences";
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -13,8 +16,19 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  return { title: "SerenTax", description: messages[locale].description };
+  return {
+    title: { default: "SerenTax", template: "%s · SerenTax" },
+    description: messages[locale].description,
+  };
 }
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f4f3" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0b" },
+  ],
+};
 export default async function LocaleLayout({
   children,
   params,
@@ -27,14 +41,13 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{var t=localStorage.getItem('serentax-theme');document.documentElement.dataset.theme=t==='dark'||t==='light'?t:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch{}",
-          }}
-        />
+        {/* Applies the saved theme before first paint (no light flash). */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <ThemeGuard />
+        {children}
+      </body>
     </html>
   );
 }

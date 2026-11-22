@@ -52,7 +52,7 @@ export const intakeMessages = {
       "Penambahan dan perubahan memerlukan peran Penyusun, Admin, atau Pemilik.",
     transactionsTitle: "Transaksi",
     transactionsIntro:
-      "Draf transaksi pajak netral untuk ruang kerja aktif. Perhitungan tarif pajak dan ekspor XML belum tersedia.",
+      "Transaksi untuk ruang kerja aktif. Buka detail untuk evaluasi pajak, pengajuan, dan persetujuan; transaksi yang disetujui dapat diekspor ke XML BPPU.",
     newTransaction: "Transaksi manual baru",
     noTransactionsYet: "Belum ada draf transaksi di ruang kerja ini.",
     status: "Status",
@@ -79,7 +79,7 @@ export const intakeMessages = {
     },
     families: {
       UNCLASSIFIED: "Belum diklasifikasi · Draf netral",
-      PPH_UNIFIKASI_BPPU: "BPPU · PPh Unifikasi (belum diverifikasi)",
+      PPH_UNIFIKASI_BPPU: "BPPU · PPh Unifikasi",
       PPN_FAKTUR_KELUARAN: "Faktur keluaran · PPN (belum diverifikasi)",
       PPH_UNIFIKASI_BPNR: "BPNR · PPh Unifikasi (belum didukung)",
       PPH21_BP21: "BP21 · PPh 21 (perlu data penggajian)",
@@ -91,7 +91,7 @@ export const intakeMessages = {
     blockedFamilyNote:
       "Keluarga PPh 21 dan PPh 26 memerlukan data penggajian atau dokumen traktat yang tidak dapat disimpulkan dari invoice tunggal, sehingga dikunci pada input invoice.",
     neutralNotice:
-      "Draf ini bersifat netral pajak: belum ada tarif pajak, kode objek, atau XML Coretax yang dihitung pada tahap ini.",
+      "Data invoice (header dan baris) bersifat netral pajak. Tarif, kode objek, dan nilai pajak hanya ditentukan pada bagian klasifikasi pajak berdasarkan aturan yang disetujui.",
     documentType: "Jenis dokumen sumber",
     documentTypes: {
       SUPPLIER_INVOICE: "Invoice pemasok / pembelian",
@@ -120,7 +120,7 @@ export const intakeMessages = {
     removeLine: "Hapus baris",
     totalAmount: "Jumlah dasar / total draf",
     checkDraft: "Periksa draf & duplikat",
-    createDraft: "Simpan draf (gunakan 1 kuota trial)",
+    createDraft: "Simpan draf (memakai 1 kuota transaksi)",
     saveRevision: "Simpan revisi draf",
     acknowledgeDuplicates:
       "Saya sudah memeriksa peringatan kemiripan di atas dan ingin tetap menyimpan draf ini.",
@@ -173,6 +173,8 @@ export const intakeMessages = {
       DATE_TOO_OLD: "Tanggal dokumen terlalu lampau.",
       UNKNOWN_COMPANY: "Pilih perusahaan dari ruang kerja aktif.",
       ARCHIVED_COMPANY: "Perusahaan yang diarsipkan tidak dapat dipilih.",
+      ARCHIVED_COUNTERPARTY:
+        "Lawan transaksi yang diarsipkan tidak dapat dipilih.",
       UNKNOWN_COUNTERPARTY: "Pilih lawan transaksi dari ruang kerja aktif.",
       COUNTERPARTY_KIND:
         "Peran lawan transaksi tidak sesuai dengan jenis invoice (vendor vs pelanggan).",
@@ -213,12 +215,18 @@ export const intakeMessages = {
         "Kuota 1 transaksi untuk hari kalender Jakarta ini sudah terpakai.",
       TOTAL_LIMIT:
         "Seluruh 3 kuota transaksi uji coba pada akun ini sudah terpakai.",
+      MONTHLY_LIMIT:
+        "Kuota transaksi bulanan paket langganan ruang kerja ini sudah habis.",
+      ENTITLEMENT_MISSING:
+        "Lisensi langganan tidak memuat hak MONTHLY_TRANSACTIONS yang valid. Hubungi admin penagihan.",
       IDEMPOTENCY_CONFLICT:
         "Kunci permintaan sudah digunakan untuk data berbeda.",
       INVALID_STATE:
         "Status transaksi saat ini tidak mengizinkan tindakan tersebut.",
       STALE_VERSION:
         "Data telah diperbarui oleh proses lain. Muat ulang halaman.",
+      IN_USE:
+        "Data sudah dipakai oleh transaksi, impor, atau ekspor sehingga tidak dapat dihapus. Arsipkan saja.",
       FORBIDDEN: "Akses ditolak untuk peran Anda pada ruang kerja ini.",
       NO_WORKSPACE: "Pilih ruang kerja aktif terlebih dahulu.",
       FAILED: "Permintaan tidak dapat diproses.",
@@ -275,7 +283,7 @@ export const intakeMessages = {
       "Creating and updating counterparties requires the Preparer, Admin, or Owner role.",
     transactionsTitle: "Transactions",
     transactionsIntro:
-      "Tax-neutral transaction drafts for the active workspace. Tax rate calculations and XML exports are not yet available.",
+      "Transactions for the active workspace. Open a transaction for tax evaluation, submission and approval; approved transactions can be exported to BPPU XML.",
     newTransaction: "New manual transaction",
     noTransactionsYet: "No transaction drafts in this workspace yet.",
     status: "Status",
@@ -302,7 +310,7 @@ export const intakeMessages = {
     },
     families: {
       UNCLASSIFIED: "Unclassified · Neutral draft",
-      PPH_UNIFIKASI_BPPU: "BPPU · Unified withholding (unverified)",
+      PPH_UNIFIKASI_BPPU: "BPPU · Unified withholding",
       PPN_FAKTUR_KELUARAN: "Output invoice · VAT (unverified)",
       PPH_UNIFIKASI_BPNR: "BPNR · Unified withholding (unsupported)",
       PPH21_BP21: "BP21 · Income tax 21 (requires payroll data)",
@@ -314,7 +322,7 @@ export const intakeMessages = {
     blockedFamilyNote:
       "PPh 21 and PPh 26 families require payroll records or treaty evidence that cannot be inferred from a single invoice, so they are locked for invoice intake.",
     neutralNotice:
-      "This draft is tax-neutral: no tax rate, object code, or Coretax XML is calculated at this stage.",
+      "Invoice data (header and lines) is tax-neutral. Rates, object codes and tax amounts are set only in the tax classification section from approved rules.",
     documentType: "Source document type",
     documentTypes: {
       SUPPLIER_INVOICE: "Supplier / purchase invoice",
@@ -343,7 +351,7 @@ export const intakeMessages = {
     removeLine: "Remove line",
     totalAmount: "Draft base / total amount",
     checkDraft: "Check draft & duplicates",
-    createDraft: "Save draft (uses 1 trial slot)",
+    createDraft: "Save draft (uses 1 transaction allowance)",
     saveRevision: "Save draft revision",
     acknowledgeDuplicates:
       "I have reviewed the duplicate warnings above and want to save this draft anyway.",
@@ -396,6 +404,7 @@ export const intakeMessages = {
       DATE_TOO_OLD: "Document date is out of range.",
       UNKNOWN_COMPANY: "Choose a company from the active workspace.",
       ARCHIVED_COMPANY: "Archived companies cannot be selected.",
+      ARCHIVED_COUNTERPARTY: "Archived counterparties cannot be selected.",
       UNKNOWN_COUNTERPARTY: "Choose a counterparty from the active workspace.",
       COUNTERPARTY_KIND:
         "Counterparty role does not match the invoice type (vendor vs customer).",
@@ -435,11 +444,17 @@ export const intakeMessages = {
         "Today’s 1-transaction Jakarta daily allowance has been used.",
       TOTAL_LIMIT:
         "All 3 lifetime trial transactions for this account have been used.",
+      MONTHLY_LIMIT:
+        "This workspace's monthly subscription transaction quota has been used.",
+      ENTITLEMENT_MISSING:
+        "The subscription license has no valid MONTHLY_TRANSACTIONS entitlement. Contact your billing admin.",
       IDEMPOTENCY_CONFLICT:
         "This request key was already used with different data.",
       INVALID_STATE:
         "The current transaction status does not allow this action.",
       STALE_VERSION: "This record was updated elsewhere. Reload the page.",
+      IN_USE:
+        "This record is used by transactions, imports or exports and cannot be deleted. Archive it instead.",
       FORBIDDEN: "Access denied for your role in this workspace.",
       NO_WORKSPACE: "Select an active workspace first.",
       FAILED: "The request could not be completed.",

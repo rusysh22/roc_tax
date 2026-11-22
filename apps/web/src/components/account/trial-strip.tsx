@@ -2,9 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/messages";
 import { trialMessages, formatTrialTimestamp } from "@/i18n/trial";
-import type { TrialSnapshot } from "@/server/trial/state";
+import type { TrialSnapshot as BaseTrialSnapshot } from "@/server/trial/state";
+import type { CreationAllowance } from "@/server/trial/service";
 import { Button } from "@/components/ui/button";
 import { post } from "./forms";
+type TrialSnapshot = BaseTrialSnapshot & {
+  subscription?: CreationAllowance | null;
+};
 export function TrialStrip({ locale }: { locale: Locale }) {
   const t = trialMessages[locale];
   const [trial, setTrial] = useState<TrialSnapshot | null>(null);
@@ -68,6 +72,55 @@ export function TrialStrip({ locale }: { locale: Locale }) {
     };
   }, []);
   const state = trial?.expiresAt && remaining <= 0 ? "EXPIRED" : trial?.state;
+  const subscription = trial?.subscription ?? null;
+  if (subscription)
+    return (
+      <section
+        aria-labelledby="trial-title"
+        className="space-y-4 rounded-xl border bg-surface p-5 shadow-xs"
+      >
+        <h2 id="trial-title" className="text-base font-semibold">
+          {t.subscriptionTitle}
+        </h2>
+        <p
+          role="status"
+          className="inline-flex items-center gap-2 rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background"
+        >
+          {t.subscriptionActive}
+        </p>
+        <dl className="grid grid-cols-3 gap-2 text-sm [&>div]:rounded-lg [&>div]:border [&>div]:bg-surface-2 [&>div]:p-3 [&_dt]:text-xs [&_dt]:text-muted-foreground [&_dd]:mt-1 [&_dd]:font-semibold">
+          <div>
+            <dt>{t.subscriptionPlan}</dt>
+            <dd className="font-mono">{subscription.planCode ?? "—"}</dd>
+          </div>
+          <div>
+            <dt>{t.subscriptionUsed}</dt>
+            <dd className="font-mono tabular-nums">
+              {subscription.usedThisMonth}
+              {subscription.monthlyLimit !== null &&
+                ` / ${subscription.monthlyLimit}`}
+            </dd>
+          </div>
+          <div>
+            <dt>{t.subscriptionRemaining}</dt>
+            <dd className="font-mono tabular-nums">
+              {subscription.remainingThisMonth ?? t.subscriptionUnlimited}
+            </dd>
+          </div>
+        </dl>
+        <p className="text-xs leading-5 text-muted-foreground">
+          {t.subscriptionNote}
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          onClick={() => refresh()}
+        >
+          {t.retry}
+        </Button>
+      </section>
+    );
   const seconds = Math.ceil(remaining / 1000);
   const duration = [
     Math.floor(seconds / 3600),
@@ -79,12 +132,14 @@ export function TrialStrip({ locale }: { locale: Locale }) {
   return (
     <section
       aria-labelledby="trial-title"
-      className="space-y-4 rounded-md border p-5"
+      className="space-y-4 rounded-xl border bg-surface p-5 shadow-xs"
     >
-      <h2 id="trial-title" className="text-xl font-semibold">
+      <h2 id="trial-title" className="text-base font-semibold">
         {t.title}
       </h2>
-      <p role="status">{failed ? t.error : state ? t[state] : t.loading}</p>
+      <p role="status" className="text-sm font-medium">
+        {failed ? t.error : state ? t[state] : t.loading}
+      </p>
       {trial && state === "NOT_ACTIVATED" && (
         <>
           <p>{t.consent}</p>
@@ -96,7 +151,7 @@ export function TrialStrip({ locale }: { locale: Locale }) {
       )}
       {trial?.expiresAt && (
         <>
-          <dl className="grid gap-4 sm:grid-cols-3">
+          <dl className="grid grid-cols-3 gap-2 text-sm [&>div]:rounded-lg [&>div]:border [&>div]:bg-surface-2 [&>div]:p-3 [&_dt]:text-xs [&_dt]:text-muted-foreground [&_dd]:mt-1 [&_dd]:font-semibold">
             <div>
               <dt>{t.remaining}</dt>
               <dd className="font-mono text-xl tabular-nums" aria-live="off">
@@ -129,9 +184,15 @@ export function TrialStrip({ locale }: { locale: Locale }) {
           )}
         </>
       )}
-      <p className="text-sm text-muted-foreground">{t.limits}</p>
-      <p className="text-sm text-muted-foreground">{t.billing}</p>
-      <Button variant="outline" disabled={busy} onClick={() => refresh()}>
+      <p className="text-xs leading-5 text-muted-foreground">
+        {t.limits} {t.billing}
+      </p>
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={busy}
+        onClick={() => refresh()}
+      >
         {t.retry}
       </Button>
     </section>

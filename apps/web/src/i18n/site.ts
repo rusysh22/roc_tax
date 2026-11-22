@@ -94,7 +94,7 @@ export const siteMessages = {
     catalogUnavailableBody:
       "Paket tidak dapat ditampilkan saat ini. Tidak ada pembelian atau perubahan akses yang dilakukan.",
     trialCaution:
-      "Pembuatan transaksi belum tersedia. Aktivasi uji coba langsung memulai waktu 72 jam; Anda dapat menunggu sebelum mengaktifkannya.",
+      "Aktivasi uji coba langsung memulai waktu 72 jam dan hanya dapat dilakukan sekali; Anda dapat menunggu sampai siap membuat transaksi pertama.",
     trialRules: [
       "Satu aktivasi untuk akun yang sudah terverifikasi.",
       "Maksimum 1 transaksi baru per hari kalender Asia/Jakarta.",
@@ -196,7 +196,7 @@ export const siteMessages = {
     accountArea: "Ruang kerja aplikasi",
     emptyTitle: "Siapkan draf transaksi manual & spreadsheet",
     emptyBody:
-      "Atur profil perusahaan dan lawan transaksi, lalu buat draf invoice manual atau impor spreadsheet dengan kuota uji coba akun. Tinjauan pajak dan ekspor XML belum tersedia.",
+      "Atur profil perusahaan dan lawan transaksi, buat draf manual atau impor spreadsheet, lalu evaluasi, ajukan, setujui, dan ekspor transaksi BPPU ke XML.",
     noActiveBody:
       "Buat ruang kerja atau terima undangan untuk mulai menata tim Anda.",
     appError: "Ruang kerja tidak dapat dimuat. Coba muat ulang.",
@@ -303,7 +303,7 @@ export const siteMessages = {
     catalogUnavailableBody:
       "Plans cannot be displayed right now. No purchase or access change has been made.",
     trialCaution:
-      "Transaction creation is not yet available. Trial activation starts the 72-hour clock immediately; you can wait before activating.",
+      "Trial activation starts the 72-hour clock immediately and can only happen once; you can wait until you are ready to create your first transaction.",
     trialRules: [
       "One activation for a verified account.",
       "At most 1 new transaction per Asia/Jakarta calendar day.",
@@ -406,7 +406,7 @@ export const siteMessages = {
     accountArea: "Application workspace",
     emptyTitle: "Prepare manual & spreadsheet transaction drafts",
     emptyBody:
-      "Set up company profiles and counterparties, then create manual invoice drafts or import spreadsheets under the account trial allowance. Tax review and XML exports are not yet available.",
+      "Set up company profiles and counterparties, create manual drafts or import spreadsheets, then evaluate, submit, approve and export BPPU transactions to XML.",
     noActiveBody:
       "Create a workspace or accept an invitation to start organizing your team.",
     appError: "Workspaces could not be loaded. Try reloading.",

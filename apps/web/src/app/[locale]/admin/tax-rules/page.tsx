@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/messages";
-import { AdminTaxRulesView } from "@/components/tax/admin-tax-rules";
+import { TaxRulesList } from "@/components/tax/admin-tax-rules";
 export default async function Page({
   params,
 }: {
@@ -8,5 +8,5 @@ export default async function Page({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  return <AdminTaxRulesView locale={locale} />;
+  return <TaxRulesList locale={locale} />;
 }

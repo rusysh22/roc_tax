@@ -66,6 +66,8 @@ export const companyCommandSchema = z.discriminatedUnion("action", [
     })
     .strict(),
   z.object({ action: z.literal("archive"), id }).strict(),
+  // Hard delete is only allowed while nothing references the company.
+  z.object({ action: z.literal("delete"), id }).strict(),
 ]);
 
 export const counterpartyInputSchema = z
@@ -97,6 +99,10 @@ export const counterpartyCommandSchema = z.discriminatedUnion("action", [
       counterparty: counterpartyInputSchema,
     })
     .strict(),
+  // Toggles archived state; archived counterparties cannot be used on new drafts.
+  z.object({ action: z.literal("archive"), id }).strict(),
+  // Hard delete is only allowed while no transaction references it.
+  z.object({ action: z.literal("delete"), id }).strict(),
 ]);
 
 export const lineInputSchema = z
@@ -155,19 +161,68 @@ export const transactionUpdateSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("comment"), body: text(2000) }).strict(),
 ]);
 
+/** Comma-separated multi-value query parameter, validated per item. */
+function csvParam<T extends string>(item: z.ZodType<T, string>) {
+  return z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .transform((value) =>
+      value
+        ? value
+            .split(",")
+            .map((part) => part.trim())
+            .filter(Boolean)
+        : [],
+    )
+    .pipe(z.array(item).max(50));
+}
+
+export const transactionSortFields = [
+  "created",
+  "date",
+  "invoice",
+  "amount",
+  "status",
+  "period",
+] as const;
+const sortPattern = new RegExp(
+  "^(" + transactionSortFields.join("|") + "):(asc|desc)$",
+);
+
 export const transactionQuerySchema = z
   .object({
     q: z.string().trim().max(100).optional(),
     status: z.enum(transactionStatuses).optional(),
     taxFamily: z.enum(intakeFamilies).optional(),
+    // Multi-value filters used by the standard list view.
+    statuses: csvParam(z.enum(transactionStatuses)),
+    excludeStatuses: csvParam(z.enum(transactionStatuses)),
+    families: csvParam(z.enum([...intakeFamilies, ...blockedIntakeFamilies])),
+    sources: csvParam(z.enum(transactionSources)),
+    companyIds: csvParam(z.string().min(1).max(100)),
+    counterpartyIds: csvParam(z.string().min(1).max(100)),
+    invoice: z.string().trim().max(100).optional(),
+    counterparty: z.string().trim().max(100).optional(),
+    dateFrom: z.iso.date().optional(),
+    dateTo: z.iso.date().optional(),
+    taxPeriod: z
+      .string()
+      .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+      .optional(),
+    taxPeriods: csvParam(z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/)),
     sort: z
-      .enum(["created_desc", "date_desc", "date_asc"])
+      .union([
+        z.enum(["created_desc", "date_desc", "date_asc"]),
+        z.string().regex(sortPattern),
+      ])
       .default("created_desc"),
     page: z.coerce.number().int().min(1).max(10000).default(1),
     pageSize: z.coerce
       .number()
       .int()
-      .refine((value) => value === 20 || value === 50)
+      .refine((value) => [20, 50, 80].includes(value))
       .default(20),
   })
   .strict();
@@ -175,7 +230,14 @@ export const transactionQuerySchema = z
 export const counterpartyQuerySchema = z
   .object({
     q: z.string().trim().max(100).optional(),
+    id: z.string().min(1).max(100).optional(),
+    archived: z.enum(["exclude", "include", "only"]).default("exclude"),
     page: z.coerce.number().int().min(1).max(10000).default(1),
+    pageSize: z.coerce
+      .number()
+      .int()
+      .refine((value) => [50, 500].includes(value))
+      .default(50),
   })
   .strict();
 
@@ -189,6 +251,7 @@ export type IssueCode =
   | "DATE_TOO_OLD"
   | "UNKNOWN_COMPANY"
   | "ARCHIVED_COMPANY"
+  | "ARCHIVED_COUNTERPARTY"
   | "UNKNOWN_COUNTERPARTY"
   | "COUNTERPARTY_KIND"
   | "FAMILY_DOCUMENT_TYPE"

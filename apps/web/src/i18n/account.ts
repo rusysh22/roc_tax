@@ -56,10 +56,15 @@ export const accountMessages = {
     revokeOthers: "Akhiri sesi lain",
     unknownDevice: "Perangkat tidak diketahui",
     noTransactions:
-      "Akun, ruang kerja, profil perusahaan, lawan transaksi, dan draf manual tersedia. Peninjauan aturan pajak dan ekspor XML belum tersedia.",
+      "Akun, ruang kerja, profil perusahaan, lawan transaksi, draf manual, impor, evaluasi dan persetujuan pajak, serta ekspor XML BPPU tersedia.",
     confirm: "Konfirmasi tindakan ini?",
     forbidden:
       "Akses ditolak. Peran atau keanggotaan Anda mungkin telah berubah.",
+    originMismatch:
+      "Permintaan ditolak karena alamat aplikasi tidak cocok. Buka SerenTax melalui alamat resmi yang dikonfigurasi (BETTER_AUTH_URL), lalu coba lagi.",
+    invalidCredentials: "Email atau kata sandi salah.",
+    emailNotVerified:
+      'Email belum diverifikasi. Buka tautan verifikasi di email Anda atau kirim ulang melalui "Verifikasi email".',
     invalidInvite:
       "Undangan tidak berlaku, sudah digunakan, kedaluwarsa, atau ditujukan untuk email lain.",
     lastOwner: "Ruang kerja harus memiliki setidaknya satu pemilik.",
@@ -125,9 +130,14 @@ export const accountMessages = {
     revokeOthers: "End other sessions",
     unknownDevice: "Unknown device",
     noTransactions:
-      "Accounts, workspaces, company profiles, counterparties, and manual drafts are available. Tax rule review and XML exports are not yet available.",
+      "Accounts, workspaces, company profiles, counterparties, manual drafts, imports, tax evaluation and approval, and BPPU XML export are available.",
     confirm: "Confirm this action?",
     forbidden: "Access denied. Your role or membership may have changed.",
+    originMismatch:
+      "Request rejected because the app address does not match. Open SerenTax at its configured address (BETTER_AUTH_URL) and try again.",
+    invalidCredentials: "Incorrect email or password.",
+    emailNotVerified:
+      'Email not verified. Open the verification link in your email or resend it via "Verify email".',
     invalidInvite:
       "The invitation is invalid, already used, expired, or addressed to another email.",
     lastOwner: "A workspace must retain at least one owner.",
@@ -142,6 +152,12 @@ export const accountMessages = {
 export function accountError(code: string | undefined, locale: Locale) {
   const t = accountMessages[locale];
   switch (code) {
+    case "ORIGIN_MISMATCH":
+      return t.originMismatch;
+    case "INVALID_EMAIL_OR_PASSWORD":
+      return t.invalidCredentials;
+    case "EMAIL_NOT_VERIFIED":
+      return t.emailNotVerified;
     case "FORBIDDEN":
     case "UNVERIFIED":
     case "UNAUTHENTICATED":

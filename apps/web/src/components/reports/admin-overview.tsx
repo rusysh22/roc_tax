@@ -191,7 +191,7 @@ export function AdminOverviewView({
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold">
+        <h1 className="text-2xl font-semibold">
           {focusJobs ? t.adminJobsTitle : t.adminTitle}
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -286,10 +286,10 @@ export function AdminOverviewView({
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="scroll-thin overflow-x-auto rounded-xl border bg-surface shadow-xs">
               <table className="w-full text-left text-xs">
                 <caption className="sr-only">{t.adminOrgsTitle}</caption>
-                <thead className="border-b bg-muted/40">
+                <thead className="border-b bg-surface-2 text-muted-foreground">
                   <tr>
                     <th scope="col" className="p-3 font-medium">
                       Org
@@ -424,10 +424,10 @@ export function AdminOverviewView({
           </select>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="scroll-thin overflow-x-auto rounded-xl border bg-surface shadow-xs">
           <table className="w-full text-left text-xs">
             <caption className="sr-only">{t.adminJobsTitle}</caption>
-            <thead className="border-b bg-muted/40">
+            <thead className="border-b bg-surface-2 text-muted-foreground">
               <tr>
                 <th scope="col" className="p-3 font-medium">
                   Job / Org

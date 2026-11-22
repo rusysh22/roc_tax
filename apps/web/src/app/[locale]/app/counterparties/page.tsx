@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/messages";
-import { CounterpartiesView } from "@/components/intake/counterparties";
+import { CounterpartiesList } from "@/components/intake/counterparties";
 export default async function Page({
   params,
 }: {
@@ -8,5 +8,5 @@ export default async function Page({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  return <CounterpartiesView locale={locale} />;
+  return <CounterpartiesList locale={locale} />;
 }

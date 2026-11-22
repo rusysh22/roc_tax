@@ -101,8 +101,9 @@ test("verified signup, profile, workspace invitation and password recovery throu
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  // Home menu (Odoo-style app grid); no workspace is active yet.
   await expect(
-    page.getByRole("heading", { name: "Overview", exact: true }),
+    page.getByRole("heading", { name: "Apps", exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: test.info().outputPath("dashboard.png"),
@@ -175,9 +176,13 @@ test("verified signup, profile, workspace invitation and password recovery throu
   });
   expect(created.ok()).toBe(true);
   await page.reload();
+  // Workspace switcher lives in the navbar menu.
+  await page.getByRole("button", { name: /^Active workspace:/ }).click();
   await page
-    .getByLabel("Active workspace", { exact: true })
-    .selectOption(original.active.id);
+    .getByRole("menuitemcheckbox", { name: "Synthetic browser workspace" })
+    .click();
+  await page.waitForLoadState("load");
+  expect(original.active.id).toBeTruthy();
   await expect(
     page.getByRole("heading", {
       name: "Synthetic browser workspace",
@@ -256,19 +261,24 @@ test("verified signup, profile, workspace invitation and password recovery throu
     expect(companyCreated.ok()).toBe(true);
     const companyId = (await companyCreated.json()).id as string;
 
+    // Standard list view → New → form view → Save.
     await memberPage
       .getByRole("link", { name: "Counterparties", exact: true })
       .click();
     await memberPage
-      .getByLabel("Counterparty name", { exact: true })
+      .getByRole("link", { name: "New", exact: true })
+      .first()
+      .click();
+    await memberPage
+      .getByLabel("Counterparty name")
       .fill("PT Synthetic Supplier");
     await memberPage
       .getByLabel("Tax identity number", { exact: true })
       .fill("9876543210987654");
-    await memberPage
-      .getByRole("button", { name: "Add counterparty", exact: true })
-      .click();
-    await expect(memberPage.getByText("PT Synthetic Supplier")).toBeVisible();
+    await memberPage.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(
+      memberPage.getByRole("heading", { name: "PT Synthetic Supplier" }),
+    ).toBeVisible();
 
     const activateMemberTrial = await memberPage.request.post("/api/trial", {
       headers: { origin: "http://127.0.0.1:3000" },
@@ -280,17 +290,20 @@ test("verified signup, profile, workspace invitation and password recovery throu
       .getByRole("link", { name: "Transactions", exact: true })
       .click();
     await memberPage
-      .getByRole("link", { name: "New manual transaction", exact: true })
+      .getByRole("link", { name: "New", exact: true })
+      .first()
       .click();
-    await expect(
-      memberPage.getByRole("heading", {
-        name: "New manual transaction",
-        exact: true,
-      }),
-    ).toBeVisible();
+    await memberPage.waitForURL(/\/transactions\/new$/);
+    const counterpartyPicker = memberPage.getByRole("combobox", {
+      name: "Counterparty",
+      exact: true,
+    });
+    await counterpartyPicker.click();
+    await counterpartyPicker.fill("Synthetic Supplier");
     await memberPage
-      .getByLabel("Invoice number", { exact: true })
-      .fill("INV-E2E-001");
+      .getByRole("option", { name: /PT Synthetic Supplier/ })
+      .click();
+    await memberPage.getByLabel("Invoice number").fill("INV-E2E-001");
     await memberPage
       .getByLabel("Line description #1", { exact: true })
       .fill("Synthetic consulting service");
@@ -298,12 +311,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
     await memberPage
       .getByLabel("Unit price (IDR) #1", { exact: true })
       .fill("150000.00");
-    await memberPage
-      .getByRole("button", {
-        name: "Save draft (uses 1 trial slot)",
-        exact: true,
-      })
-      .click();
+    await memberPage.getByRole("button", { name: "Save", exact: true }).click();
     await expect(
       memberPage.getByRole("heading", { name: "INV-E2E-001", exact: true }),
     ).toBeVisible();
@@ -322,25 +330,25 @@ test("verified signup, profile, workspace invitation and password recovery throu
     );
     expect(uploadResponse.status()).toBe(201);
     await memberPage.reload();
+    await memberPage.getByRole("tab", { name: /Source documents/ }).click();
     await expect(
       memberPage.locator("span", { hasText: "synthetic-invoice.pdf" }).first(),
     ).toBeVisible();
     await memberPage
       .getByLabel("Write a comment", { exact: true })
       .fill("Synthetic preparer note");
-    await memberPage
-      .getByRole("button", { name: "Post comment", exact: true })
-      .click();
+    await memberPage.getByRole("button", { name: "Send", exact: true }).click();
     await expect(memberPage.getByText("Synthetic preparer note")).toBeVisible();
     expect(companyId.length).toBeGreaterThan(0);
 
     // Preparer navigates to Imports, downloads CSV/XLSX templates, and previews a mixed CSV.
     await memberPage
-      .getByRole("link", { name: "Imports", exact: true })
+      .getByRole("link", { name: "Spreadsheet imports", exact: true })
+      .first()
       .click();
     await expect(
       memberPage.getByRole("heading", {
-        name: "Spreadsheet import & batch preview",
+        name: "Spreadsheet imports",
         exact: true,
       }),
     ).toBeVisible();
@@ -392,23 +400,23 @@ test("verified signup, profile, workspace invitation and password recovery throu
       memberPage.getByText("NONE · Manual & spreadsheet entry only"),
     ).toBeVisible();
     await memberPage.goto(`/en/app/transactions/${txId}`);
+    // OCR and tax review live in the form's notebook tabs.
+    await memberPage.getByRole("tab", { name: "OCR", exact: true }).click();
     await expect(
       memberPage.getByRole("heading", {
         name: "OCR candidate extraction & side-by-side correction",
         exact: true,
       }),
     ).toBeVisible();
-    await expect(
-      memberPage.getByRole("heading", {
-        name: "Tax classification, rule engine & review workflow",
-        exact: true,
-      }),
-    ).toBeVisible();
+    await memberPage
+      .getByRole("tab", { name: "Tax classification", exact: true })
+      .click();
     const forbiddenTaxAdmin = await memberPage.request.get(
       "/api/admin/tax-rules",
     );
     expect(forbiddenTaxAdmin.status()).toBe(403);
     await memberPage
+      .getByRole("tabpanel")
       .getByRole("button", { name: "Evaluate tax rule", exact: true })
       .click();
     await expect(
@@ -426,17 +434,27 @@ test("verified signup, profile, workspace invitation and password recovery throu
     ).toBeVisible();
     await memberPage.goto("/en/app/exports");
     await expect(
-      memberPage.getByRole("heading", {
-        name: "Coretax XML Exports",
-        exact: true,
-      }),
+      memberPage.getByRole("heading", { name: "XML exports", exact: true }),
     ).toBeVisible();
+    // Template availability is shown in the export wizard.
+    await memberPage
+      .getByRole("button", { name: "New", exact: true })
+      .first()
+      .click();
+    const exportWizard = memberPage.getByRole("dialog");
     await expect(
-      memberPage.getByText("Available (source-verified template)"),
+      exportWizard.getByText("Available (source-verified template)"),
     ).toBeVisible();
+    await exportWizard
+      .getByRole("combobox", { name: "Tax family", exact: true })
+      .click();
     await expect(
-      memberPage.getByText("Blocked (TEMPLATE_UNVERIFIED)").first(),
+      memberPage
+        .getByRole("option", { name: /Blocked \(TEMPLATE_UNVERIFIED\)/ })
+        .first(),
     ).toBeVisible();
+    await memberPage.keyboard.press("Escape");
+    await exportWizard.getByRole("button", { name: "Cancel" }).click();
     const forbiddenBillingAdmin =
       await memberPage.request.get("/api/admin/billing");
     expect(forbiddenBillingAdmin.status()).toBe(403);
@@ -468,10 +486,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
     ).toBeVisible();
     await memberPage.goto("/en/app/reconciliation");
     await expect(
-      memberPage.getByRole("heading", {
-        name: "Reconciliation & Usage Report",
-        exact: true,
-      }),
+      memberPage.getByRole("heading", { name: "Reconciliation", exact: true }),
     ).toBeVisible();
     await expect(
       memberPage.getByText("recorded manually by users"),
@@ -530,18 +545,24 @@ test("verified signup, profile, workspace invitation and password recovery throu
   await expect(page).toHaveURL(/\/id\/app\/transactions$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Transaksi");
   await page.getByRole("link", { name: "English", exact: true }).click();
-  await page.getByRole("link", { name: "Overview", exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/app\/transactions$/);
+  await page.getByRole("link", { name: "Apps menu", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: test.info().outputPath("dashboard-mobile.png"),
     fullPage: true,
   });
-  await page.locator("aside summary").click();
-  await page.getByRole("link", { name: "Imports", exact: true }).click();
+  // Mobile: the sidebar becomes a drawer.
+  await page.getByRole("button", { name: "Open menu", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Main navigation" })
+    .getByRole("link", { name: "Spreadsheet imports", exact: true })
+    .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Spreadsheet import & batch preview",
+    "Spreadsheet imports",
   );
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.getByRole("button", { name: "User menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL(/\/auth\/sign-in$/);
   await page.goto("/en/auth/forgot");
   await page.getByLabel("Email", { exact: true }).fill(email);

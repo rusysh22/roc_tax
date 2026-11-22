@@ -24,7 +24,8 @@
     "db:check": "tsx scripts/check-database.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:migrate": "prisma migrate deploy",
-    "test:e2e:auth": "playwright test --config playwright.auth.config.ts"
+    "test:e2e:auth": "playwright test --config playwright.auth.config.ts",
+    "db:seed:dev": "tsx scripts/seed-dev.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -12,8 +12,8 @@ export default async function Page({
   if (!isLocale(locale) || section !== "help") notFound();
   const t = siteMessages[locale];
   return (
-    <div className="max-w-3xl space-y-6">
-      <h1 className="text-3xl font-semibold">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
+      <h1 className="text-2xl font-semibold">
         {t[section as "exports" | "help"]}
       </h1>
       {section !== "help" && <StatusBadge>{t.planned}</StatusBadge>}

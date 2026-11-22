@@ -29,9 +29,17 @@ export const trialMessages = {
     limits:
       "Maksimal 1 transaksi per hari kalender Jakarta dan 3 selama uji coba. Hapus, edit, dan ulangi permintaan tidak mengembalikan kuota.",
     unavailable:
-      "Draf transaksi manual tersedia untuk peran Penyusun. Tinjauan aturan pajak dan ekspor XML belum tersedia.",
+      "Draf transaksi manual dan impor tersedia untuk peran Penyusun. Evaluasi pajak memerlukan aturan pajak yang disetujui, dan ekspor XML baru tersedia untuk keluarga BPPU yang terverifikasi.",
     billing:
-      "Langganan belum tersedia. Harga akan mengikuti katalog Berlanggan yang terverifikasi.",
+      "Paket berbayar mengikuti katalog Berlanggan yang terverifikasi dan aktif setelah lisensi ruang kerja divalidasi.",
+    subscriptionTitle: "Kuota langganan",
+    subscriptionActive: "Langganan aktif",
+    subscriptionPlan: "Paket",
+    subscriptionUsed: "Transaksi bulan ini",
+    subscriptionRemaining: "Sisa kuota bulan ini",
+    subscriptionUnlimited: "Tanpa batas",
+    subscriptionNote:
+      "Transaksi baru di ruang kerja ini memakai kuota bulanan langganan (bulan kalender Asia/Jakarta), bukan kuota uji coba. Membatalkan transaksi tidak mengembalikan kuota.",
     readOnly:
       "Catatan tetap dapat dibaca sesuai hak akses. Transaksi baru yang memerlukan trial aktif ditolak.",
     IDEMPOTENCY_CONFLICT:
@@ -59,9 +67,17 @@ export const trialMessages = {
     limits:
       "At most 1 transaction per Jakarta calendar day and 3 during the trial. Deletion, editing and retries do not restore allowance.",
     unavailable:
-      "Manual transaction drafts are available for the Preparer role. Tax rule review and XML export are not yet available.",
+      "Manual drafts and imports are available for the Preparer role. Tax evaluation requires approved tax rules, and XML export is currently available for the verified BPPU family only.",
     billing:
-      "Subscriptions are not yet available. Prices will follow the verified Berlanggan catalog.",
+      "Paid plans follow the verified Berlanggan catalog and activate once the workspace license is validated.",
+    subscriptionTitle: "Subscription quota",
+    subscriptionActive: "Subscription active",
+    subscriptionPlan: "Plan",
+    subscriptionUsed: "Transactions this month",
+    subscriptionRemaining: "Remaining this month",
+    subscriptionUnlimited: "Unlimited",
+    subscriptionNote:
+      "New transactions in this workspace use the subscription's monthly quota (Asia/Jakarta calendar month), not the trial allowance. Voiding a transaction does not restore quota.",
     readOnly:
       "Records remain readable according to your access rights. New transactions requiring an active trial are blocked.",
     IDEMPOTENCY_CONFLICT:

@@ -4,7 +4,9 @@ import { useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Locale } from "@/i18n/messages";
 import { accountMessages, accountError } from "@/i18n/account";
-import { Field, Submit, post } from "./forms";
+import { Field, post } from "./forms";
+import { Button } from "@/components/ui/button";
+import { LocaleSwitch, ThemeToggle } from "@/components/layout/preferences";
 export type AuthScreen = "sign-in" | "sign-up" | "forgot" | "reset" | "verify";
 export function AuthForm({
   locale,
@@ -83,73 +85,126 @@ export function AuthForm({
     }
   }
   return (
-    <main className="mx-auto max-w-md space-y-6 px-6 py-12">
-      <Link href={`/${locale}`}>SerenTax</Link>
-      <h1 className="text-3xl font-semibold">{titles[screen]}</h1>
-      {!ready && <p role="alert">{t.unavailable}</p>}
-      {screen === "verify" && <p>{t.verifiedHelp}</p>}
-      {params.get("error") && <p role="alert">{t.failed}</p>}
-      <form onSubmit={submit} className="space-y-5">
-        <fieldset disabled={busy || !ready} className="space-y-5">
-          {screen === "sign-up" && (
-            <Field
-              label={t.name}
-              name="name"
-              autoComplete="name"
-              required
-              minLength={2}
-              maxLength={100}
-            />
+    <main className="relative flex min-h-dvh flex-col items-center justify-center px-4 py-10">
+      <div className="absolute top-3 right-3 flex items-center gap-1">
+        <LocaleSwitch locale={locale} className="hover:bg-muted" />
+        <ThemeToggle locale={locale} className="hover:bg-muted" />
+      </div>
+      <div className="w-full max-w-sm space-y-6">
+        <Link
+          href={`/${locale}`}
+          className="mx-auto flex w-fit items-center gap-2 text-xl font-bold tracking-tight"
+        >
+          <span className="flex size-9 items-center justify-center rounded-xl bg-foreground text-sm text-background">
+            S
+          </span>
+          SerenTax
+        </Link>
+        <div className="space-y-6 rounded-xl border bg-surface p-6 shadow-md sm:p-8">
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-semibold">{titles[screen]}</h1>
+            {screen === "verify" && (
+              <p className="text-sm text-muted-foreground">{t.verifiedHelp}</p>
+            )}
+          </div>
+          {!ready && (
+            <p
+              role="alert"
+              className="rounded-lg border border-dashed px-3 py-2 text-sm"
+            >
+              {t.unavailable}
+            </p>
           )}
-          {screen !== "reset" && (
-            <Field
-              label={t.email}
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              maxLength={254}
-            />
+          {params.get("error") && (
+            <p
+              role="alert"
+              className="rounded-lg border border-foreground px-3 py-2 text-sm"
+            >
+              {t.failed}
+            </p>
           )}
-          {["sign-in", "sign-up", "reset"].includes(screen) && (
-            <>
-              <Field
-                label={t.password}
-                name="password"
-                type="password"
-                autoComplete={
-                  screen === "sign-in" ? "current-password" : "new-password"
-                }
-                required
-                minLength={screen === "sign-in" ? 1 : 12}
-                maxLength={128}
-              />
-              <p className="text-sm text-muted-foreground">{t.passwordHint}</p>
-            </>
-          )}
-          <Submit busy={busy}>
-            {busy ? t.busy : screen === "verify" ? t.resend : titles[screen]}
-          </Submit>
-        </fieldset>
-      </form>
-      <p role={failed ? "alert" : "status"} aria-live="polite">
-        {message}
-      </p>
-      <nav className="flex flex-wrap gap-4 text-sm underline">
-        {(["sign-in", "sign-up", "forgot", "verify"] as const)
-          .filter((s) => s !== screen)
-          .map((s) => (
-            <Link key={s} href={`/${locale}/auth/${s}`}>
-              {titles[s]}
-            </Link>
-          ))}
-      </nav>
-      <Link
-        className="block text-sm underline"
-        href={`/${locale === "id" ? "en" : "id"}/auth/${screen}`}
-      >
-        {locale === "id" ? "English" : "Bahasa Indonesia"}
-      </Link>
+          <form onSubmit={submit} className="space-y-5">
+            <fieldset disabled={busy || !ready} className="space-y-4">
+              {screen === "sign-up" && (
+                <Field
+                  label={t.name}
+                  name="name"
+                  autoComplete="name"
+                  required
+                  minLength={2}
+                  maxLength={100}
+                />
+              )}
+              {screen !== "reset" && (
+                <Field
+                  label={t.email}
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  maxLength={254}
+                />
+              )}
+              {["sign-in", "sign-up", "reset"].includes(screen) && (
+                <>
+                  <Field
+                    label={t.password}
+                    name="password"
+                    type="password"
+                    autoComplete={
+                      screen === "sign-in" ? "current-password" : "new-password"
+                    }
+                    required
+                    minLength={screen === "sign-in" ? 1 : 12}
+                    maxLength={128}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t.passwordHint}
+                  </p>
+                </>
+              )}
+              <Button
+                type="submit"
+                disabled={busy}
+                aria-busy={busy}
+                className="w-full"
+              >
+                {busy
+                  ? t.busy
+                  : screen === "verify"
+                    ? t.resend
+                    : titles[screen]}
+              </Button>
+            </fieldset>
+          </form>
+          <p
+            role={failed ? "alert" : "status"}
+            aria-live="polite"
+            className={
+              message
+                ? failed
+                  ? "rounded-lg border border-foreground px-3 py-2 text-sm"
+                  : "rounded-lg bg-muted px-3 py-2 text-sm"
+                : "sr-only"
+            }
+          >
+            {message}
+          </p>
+        </div>
+        <nav className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm">
+          {(["sign-in", "sign-up", "forgot", "verify"] as const)
+            .filter((s) => s !== screen)
+            .map((s) => (
+              <Link
+                key={s}
+                href={`/${locale}/auth/${s}`}
+                className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                {titles[s]}
+              </Link>
+            ))}
+        </nav>
+      </div>
     </main>
   );
 }

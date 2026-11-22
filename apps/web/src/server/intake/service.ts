@@ -56,7 +56,8 @@ export class IntakeError extends Error {
       | "DOCUMENT_LIMIT"
       | "NOT_FOUND"
       | "INVALID_STATE"
-      | "STALE_VERSION",
+      | "STALE_VERSION"
+      | "IN_USE",
     public details: {
       issues?: FieldIssue[];
       duplicates?: DuplicateWarning[];
@@ -188,6 +189,8 @@ async function checkDraftReferencesAndDuplicates(
     issues.push({ path: "companyId", code: "ARCHIVED_COMPANY" });
   if (!counterparty)
     issues.push({ path: "counterpartyId", code: "UNKNOWN_COUNTERPARTY" });
+  else if (counterparty.archivedAt && !excludeTransactionId)
+    issues.push({ path: "counterpartyId", code: "ARCHIVED_COUNTERPARTY" });
   else if (
     (draft.documentType === "SUPPLIER_INVOICE" &&
       counterparty.kind === "CUSTOMER") ||
@@ -292,6 +295,35 @@ export function intakeService(
       "team.manage",
       async (tx, { session, membership }) => {
         const organizationId = membership.organizationId;
+        if (command.action === "delete") {
+          const existing = await tx.company.findFirst({
+            where: { id: command.id, organizationId },
+          });
+          if (!existing) throw new IntakeError("NOT_FOUND");
+          const [transactions, imports, exports] = await Promise.all([
+            tx.transaction.count({
+              where: { companyId: existing.id, organizationId },
+            }),
+            tx.importBatch.count({
+              where: { companyId: existing.id, organizationId },
+            }),
+            tx.xmlExportBatch.count({
+              where: { companyId: existing.id, organizationId },
+            }),
+          ]);
+          if (transactions + imports + exports > 0)
+            throw new IntakeError("IN_USE");
+          await tx.company.delete({ where: { id: existing.id } });
+          await tx.workspaceAudit.create({
+            data: {
+              organizationId,
+              actorId: session.userId,
+              action: "COMPANY_DELETED",
+              targetId: existing.id,
+            },
+          });
+          return { id: existing.id };
+        }
         if (command.action === "archive") {
           const existing = await tx.company.findFirst({
             where: { id: command.id, organizationId },
@@ -424,16 +456,23 @@ export function intakeService(
       const organizationId = membership.organizationId;
       const where: Prisma.CounterpartyWhereInput = {
         organizationId,
+        ...(query.id ? { id: query.id } : {}),
         ...(query.q
           ? { nameNormalized: { contains: normalizeName(query.q) } }
           : {}),
+        ...(query.id || query.archived === "include"
+          ? {}
+          : query.archived === "only"
+            ? { archivedAt: { not: null } }
+            : { archivedAt: null }),
       };
       const total = await tx.counterparty.count({ where });
       const rows = await tx.counterparty.findMany({
         where,
         orderBy: { nameNormalized: "asc" },
-        skip: (query.page - 1) * 50,
-        take: 50,
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        include: { _count: { select: { transactions: true } } },
       });
       return {
         role: membership.role,
@@ -447,6 +486,9 @@ export function intakeService(
           identityHint: row.identityHint,
           countryCode: row.countryCode,
           address: row.address,
+          archivedAt: row.archivedAt?.toISOString() ?? null,
+          createdAt: row.createdAt.toISOString(),
+          transactionCount: row._count.transactions,
         })),
       };
     });
@@ -468,6 +510,39 @@ export function intakeService(
         throw new AccessError("CONFLICT");
       if (!["OWNER", "ADMIN", "PREPARER"].includes(membership.role))
         throw new AccessError("FORBIDDEN");
+
+      if (command.action === "archive" || command.action === "delete") {
+        const existing = await tx.counterparty.findFirst({
+          where: { id: command.id, organizationId },
+        });
+        if (!existing) throw new IntakeError("NOT_FOUND");
+        if (command.action === "delete") {
+          const used = await tx.transaction.count({
+            where: { counterpartyId: existing.id, organizationId },
+          });
+          if (used > 0) throw new IntakeError("IN_USE");
+          await tx.counterparty.delete({ where: { id: existing.id } });
+        } else {
+          await tx.counterparty.update({
+            where: { id: existing.id },
+            data: { archivedAt: existing.archivedAt ? null : new Date() },
+          });
+        }
+        await tx.workspaceAudit.create({
+          data: {
+            organizationId,
+            actorId: session.userId,
+            action:
+              command.action === "delete"
+                ? "COUNTERPARTY_DELETED"
+                : existing.archivedAt
+                  ? "COUNTERPARTY_RESTORED"
+                  : "COUNTERPARTY_ARCHIVED",
+            targetId: existing.id,
+          },
+        });
+        return { id: existing.id, duplicateNames: [] as string[] };
+      }
 
       const data = command.counterparty;
       const issues: FieldIssue[] = [];
@@ -715,6 +790,56 @@ export function intakeService(
         organizationId,
         ...(query.status ? { status: query.status } : {}),
         ...(query.taxFamily ? { taxFamily: query.taxFamily } : {}),
+        ...(query.statuses.length || query.excludeStatuses.length
+          ? {
+              AND: [
+                ...(query.statuses.length
+                  ? [{ status: { in: query.statuses } }]
+                  : []),
+                ...(query.excludeStatuses.length
+                  ? [{ status: { notIn: query.excludeStatuses } }]
+                  : []),
+              ],
+            }
+          : {}),
+        ...(query.families.length ? { taxFamily: { in: query.families } } : {}),
+        ...(query.sources.length ? { source: { in: query.sources } } : {}),
+        ...(query.companyIds.length
+          ? { companyId: { in: query.companyIds } }
+          : {}),
+        ...(query.counterpartyIds.length
+          ? { counterpartyId: { in: query.counterpartyIds } }
+          : {}),
+        ...(query.taxPeriod ? { taxPeriod: query.taxPeriod } : {}),
+        ...(query.taxPeriods.length
+          ? { taxPeriod: { in: query.taxPeriods } }
+          : {}),
+        ...(query.dateFrom || query.dateTo
+          ? {
+              documentDate: {
+                ...(query.dateFrom
+                  ? { gte: new Date(`${query.dateFrom}T00:00:00.000Z`) }
+                  : {}),
+                ...(query.dateTo
+                  ? { lte: new Date(`${query.dateTo}T00:00:00.000Z`) }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(query.invoice
+          ? {
+              invoiceNumberNormalized: {
+                contains: normalizeInvoiceNumber(query.invoice),
+              },
+            }
+          : {}),
+        ...(query.counterparty
+          ? {
+              counterparty: {
+                nameNormalized: { contains: normalizeName(query.counterparty) },
+              },
+            }
+          : {}),
         ...(q
           ? {
               OR: [
@@ -732,12 +857,28 @@ export function intakeService(
             }
           : {}),
       };
-      const orderBy: Prisma.TransactionOrderByWithRelationInput =
-        query.sort === "date_asc"
-          ? { documentDate: "asc" }
-          : query.sort === "date_desc"
-            ? { documentDate: "desc" }
-            : { createdAt: "desc" };
+      const [sortField, sortDir]: [string, "asc" | "desc"] =
+        query.sort.includes(":")
+          ? (query.sort.split(":") as [string, "asc" | "desc"])
+          : query.sort === "date_asc"
+            ? ["date", "asc"]
+            : query.sort === "date_desc"
+              ? ["date", "desc"]
+              : ["created", "desc"];
+      const orderBy: Prisma.TransactionOrderByWithRelationInput[] = [
+        sortField === "date"
+          ? { documentDate: sortDir }
+          : sortField === "invoice"
+            ? { invoiceNumberNormalized: sortDir }
+            : sortField === "amount"
+              ? { totalAmount: sortDir }
+              : sortField === "status"
+                ? { status: sortDir }
+                : sortField === "period"
+                  ? { taxPeriod: sortDir }
+                  : { createdAt: sortDir },
+        { createdAt: "desc" },
+      ];
       const total = await tx.transaction.count({ where });
       const rows = await tx.transaction.findMany({
         where,
@@ -798,6 +939,7 @@ export function intakeService(
           documentCount: row._count.documents,
           lineCount: row._count.lines,
           hasDuplicate: duplicateSet.has(row.id),
+          version: row.version,
           createdAt: row.createdAt.toISOString(),
         })),
       };

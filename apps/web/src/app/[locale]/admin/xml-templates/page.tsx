@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/messages";
-import { AdminXmlTemplatesView } from "@/components/export/admin-xml-templates";
-
+import { XmlTemplatesList } from "@/components/export/admin-xml-templates";
 export default async function Page({
   params,
 }: {
@@ -9,5 +8,5 @@ export default async function Page({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  return <AdminXmlTemplatesView locale={locale} />;
+  return <XmlTemplatesList locale={locale} />;
 }

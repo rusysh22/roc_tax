@@ -1,17 +1,17 @@
 "use client";
 import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
+
+/** Legacy labelled input, styled with the shared field chrome. */
 export function Field({
   label,
+  className,
   ...props
 }: ComponentProps<"input"> & { label: string }) {
   return (
-    <label className="block space-y-2 text-sm font-medium">
+    <label className="block space-y-1.5 text-sm font-medium">
       <span>{label}</span>
-      <input
-        className="block min-h-11 w-full rounded-md border bg-background px-3 py-2 focus:outline-2 focus:outline-offset-2"
-        {...props}
-      />
+      <input className={`field-control ${className ?? ""}`} {...props} />
     </label>
   );
 }
@@ -23,7 +23,7 @@ export function Submit({
   children: React.ReactNode;
 }) {
   return (
-    <Button type="submit" disabled={busy}>
+    <Button type="submit" disabled={busy} aria-busy={busy}>
       {children}
     </Button>
   );
@@ -35,6 +35,9 @@ export async function post(path: string, body: unknown = {}) {
     body: JSON.stringify(body),
   });
   const value = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(value.code ?? "FAILED");
+  if (!response.ok)
+    throw new Error(
+      value.code ?? (response.status === 429 ? "RATE_LIMITED" : "FAILED"),
+    );
   return value;
 }

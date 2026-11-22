@@ -134,7 +134,7 @@ export function Workspace({
         aria-label={t.role}
         name={name}
         defaultValue={defaultValue}
-        className="min-h-11 rounded-md border px-3"
+        className="field-control w-auto"
       >
         {roles
           .filter((role) => active && canAssign(active.role, role))
@@ -147,20 +147,22 @@ export function Workspace({
     </label>
   );
   return (
-    <div className="w-full">
-      <div className="space-y-10">
-        <h1 className="text-3xl font-semibold">{t.account}</h1>
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold">{t.account}</h1>
         <TrialStrip locale={locale} />
-        <p className="rounded-md bg-muted p-4">{t.noTransactions}</p>
+        <p className="rounded-lg border bg-surface-2 px-4 py-3 text-sm text-muted-foreground">
+          {t.noTransactions}
+        </p>
         <p data-testid="account-feedback" role="status" aria-live="polite">
           {busy || loading ? t.busy : message}
         </p>
         <Button variant="outline" disabled={busy} onClick={() => run(load)}>
           {t.refresh}
         </Button>
-        <fieldset disabled={busy} className="space-y-10">
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold">{t.profile}</h2>
+        <fieldset disabled={busy} className="space-y-6">
+          <section className="space-y-4 rounded-xl border bg-surface p-5 shadow-xs sm:p-6">
+            <h2 className="text-lg font-semibold">{t.profile}</h2>
             <p className="break-all">{email}</p>
             <form
               className="flex flex-wrap items-end gap-4"
@@ -186,8 +188,8 @@ export function Workspace({
               {t.reset}
             </Link>
           </section>
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold">{t.workspaces}</h2>
+          <section className="space-y-4 rounded-xl border bg-surface p-5 shadow-xs sm:p-6">
+            <h2 className="text-lg font-semibold">{t.workspaces}</h2>
             {!active && <p>{t.noWorkspace}</p>}
             <ul className="space-y-3">
               {snapshot?.workspaces.map((workspace) => (
@@ -244,8 +246,8 @@ export function Workspace({
             </form>
           </section>
           {active && (
-            <section className="space-y-4">
-              <h2 className="break-words text-xl font-semibold">
+            <section className="space-y-4 rounded-xl border bg-surface p-5 shadow-xs sm:p-6">
+              <h2 className="break-words text-lg font-semibold">
                 {active.name}
               </h2>
               <p>
@@ -287,7 +289,7 @@ export function Workspace({
                           e.target.value as SegregationPolicy,
                         )
                       }
-                      className="min-h-11 w-full rounded-md border bg-background px-3 text-sm"
+                      className="field-control"
                     >
                       {segregationPolicies.map((p) => (
                         <option key={p} value={p}>
@@ -405,8 +407,8 @@ export function Workspace({
               )}
             </section>
           )}
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold">{t.sessions}</h2>
+          <section className="space-y-4 rounded-xl border bg-surface p-5 shadow-xs sm:p-6">
+            <h2 className="text-lg font-semibold">{t.sessions}</h2>
             <Button
               variant="outline"
               onClick={() =>

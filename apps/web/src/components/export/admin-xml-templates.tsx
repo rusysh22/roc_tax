@@ -1,13 +1,35 @@
 "use client";
-import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { Archive, ArchiveRestore, BadgeCheck, Workflow } from "lucide-react";
 import type { Locale } from "@/i18n/messages";
 import { exportMessages } from "@/i18n/exports";
-import { formatDate } from "@/i18n/format";
+import { shellMessages } from "@/i18n/shell";
+import { viewMessages } from "@/i18n/views";
 import { allTaxFamilies } from "@/lib/intake/tax-rules";
-import type { XmlTemplateStatus } from "@/lib/export/bppu-spec";
 import { Button } from "@/components/ui/button";
-import { Skeleton, StatusBadge } from "@/components/ui/status";
-import { Field, Submit } from "@/components/account/forms";
+import { Combobox } from "@/components/ui/combobox";
+import {
+  Checkbox,
+  FieldGroup,
+  FormField,
+  ReadValue,
+  TextInput,
+} from "@/components/ui/field";
+import { MenuItem } from "@/components/ui/menu";
+import { Badge, Notice } from "@/components/ui/status";
+import { useToast } from "@/components/ui/toast";
+import {
+  FormBody,
+  FormPage,
+  SheetTitle,
+  StatusBar,
+} from "@/components/views/form-view";
+import { ListPage, archivedPreset } from "@/components/views/list-page";
+import { comboLabels } from "@/components/views/page-state";
+import type { Column } from "@/components/views/list-view";
+import type { ViewField } from "@/components/views/search";
+import { useResource } from "@/components/views/use-resource";
 import {
   ApiFailure,
   apiGet,
@@ -15,6 +37,7 @@ import {
   formatFailure,
 } from "@/components/intake/client";
 
+type XmlTemplateStatus = "UNVERIFIED" | "VERIFIED" | "RETIRED";
 type TemplateRow = {
   id: string;
   taxFamily: string;
@@ -34,237 +57,426 @@ type TemplateRow = {
   createdAt: string;
 };
 
-export function AdminXmlTemplatesView({ locale }: { locale: Locale }) {
+function templateError(error: unknown, locale: Locale) {
+  if (error instanceof ApiFailure) {
+    const map = exportMessages[locale].errors as Record<string, string>;
+    if (map[error.code]) return map[error.code];
+  }
+  return formatFailure(error, locale);
+}
+
+const statusLabel = (locale: Locale, status: XmlTemplateStatus) => {
   const t = exportMessages[locale];
-  const [templates, setTemplates] = useState<TemplateRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [feedback, setFeedback] = useState("");
+  return status === "VERIFIED"
+    ? t.availableBadge
+    : status === "RETIRED"
+      ? t.retireButton
+      : t.unverifiedBadge;
+};
 
-  const [taxFamily, setTaxFamily] = useState("PPN_FAKTUR_KELUARAN");
-  const [versionTag, setVersionTag] = useState("");
-  const [sourceUrl, setSourceUrl] = useState(
-    "https://pajak.go.id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml",
+function StatusPill({
+  locale,
+  status,
+}: {
+  locale: Locale;
+  status: XmlTemplateStatus;
+}) {
+  if (status === "VERIFIED")
+    return (
+      <Badge tone="solid" dot>
+        {statusLabel(locale, status)}
+      </Badge>
+    );
+  if (status === "RETIRED")
+    return <Badge tone="muted">{statusLabel(locale, status)}</Badge>;
+  return <Badge tone="outline">{statusLabel(locale, status)}</Badge>;
+}
+
+const setStatus = (templateId: string, status: XmlTemplateStatus) =>
+  apiPost("/api/admin/xml-templates", {
+    action: "set_status",
+    templateId,
+    status,
+  });
+
+export function XmlTemplatesList({ locale }: { locale: Locale }) {
+  const t = exportMessages[locale];
+  const s = shellMessages[locale];
+  const v = viewMessages[locale];
+  const { data, reload } = useResource(() =>
+    apiGet<{ templates: TemplateRow[] }>("/api/admin/xml-templates"),
   );
-  const [sourceLabel, setSourceLabel] = useState("");
-  const [sourceSha256, setSourceSha256] = useState("");
-  const [xsdSchemaHash, setXsdSchemaHash] = useState("");
-  const [fixtureVerified, setFixtureVerified] = useState(false);
+  const isArchived = (r: TemplateRow) => r.status === "RETIRED";
+  const archive = useMemo(() => archivedPreset(locale, isArchived), [locale]);
+  const fields = useMemo<ViewField<TemplateRow>[]>(
+    () => [
+      {
+        name: "versionTag",
+        label: t.versionTagLabel,
+        type: "text",
+        value: (r) => r.versionTag,
+        searchable: true,
+        sortable: true,
+      },
+      {
+        name: "sourceLabel",
+        label: t.sourceLabelField,
+        type: "text",
+        value: (r) => r.sourceLabel,
+        searchable: true,
+      },
+      {
+        name: "taxFamily",
+        label: t.familyLabel,
+        type: "enum",
+        value: (r) => r.taxFamily,
+        filterable: true,
+        groupable: true,
+      },
+      {
+        name: "status",
+        label: t.familyStatusTitle,
+        type: "enum",
+        value: (r) => r.status,
+        display: (r) => statusLabel(locale, r.status),
+        options: (["UNVERIFIED", "VERIFIED", "RETIRED"] as const).map((st) => ({
+          value: st,
+          label: statusLabel(locale, st),
+        })),
+        filterable: true,
+        groupable: true,
+      },
+      {
+        name: "createdAt",
+        label: v.from,
+        type: "date",
+        value: (r) => r.createdAt,
+        filterable: true,
+        sortable: true,
+      },
+    ],
+    [t, v, locale],
+  );
+  const columns: Column<TemplateRow>[] = [
+    {
+      key: "tag",
+      header: t.versionTagLabel,
+      sortField: "versionTag",
+      primary: true,
+      cell: (r) => <span className="font-mono">{r.versionTag}</span>,
+    },
+    {
+      key: "family",
+      header: t.familyLabel,
+      cell: (r) => <span className="font-mono text-xs">{r.taxFamily}</span>,
+    },
+    {
+      key: "label",
+      header: t.sourceLabelField,
+      cell: (r) => (
+        <span className="line-clamp-2 text-xs">{r.sourceLabel}</span>
+      ),
+      hideBelow: "lg",
+    },
+    {
+      key: "fixture",
+      header: t.fixtureVerifiedLabel,
+      cell: (r) => (r.fixtureVerified ? v.yes : v.no),
+      hideBelow: "md",
+    },
+    {
+      key: "status",
+      header: t.familyStatusTitle,
+      cell: (r) => <StatusPill locale={locale} status={r.status} />,
+    },
+  ];
+  return (
+    <ListPage
+      locale={locale}
+      title={s.menuXmlTemplates}
+      model="xml-templates"
+      fields={fields}
+      presets={archive.presets}
+      baseline={archive.baseline}
+      columns={columns}
+      records={data?.templates ?? null}
+      getId={(r) => r.id}
+      href={(r) => `/${locale}/admin/xml-templates/${r.id}`}
+      rowLabel={(r) => r.versionTag}
+      createHref={`/${locale}/admin/xml-templates/new`}
+      emptyIcon={<Workflow />}
+      banner={<Notice>{t.adminIntro}</Notice>}
+      actions={[
+        {
+          id: "retire",
+          label: v.archive,
+          icon: <Archive />,
+          visible: (rows) => rows.some((r) => !isArchived(r)),
+          confirm: { title: v.confirmArchiveTitle, body: v.confirmArchiveBody },
+          run: async (rows) => {
+            try {
+              for (const r of rows.filter((r) => !isArchived(r)))
+                await setStatus(r.id, "RETIRED");
+              return v.archivedDone;
+            } catch (error) {
+              throw new Error(templateError(error, locale), { cause: error });
+            }
+          },
+        },
+      ]}
+      onActionDone={reload}
+    />
+  );
+}
 
-  function formatErr(error: unknown) {
-    if (error instanceof ApiFailure) {
-      const map = t.errors as Record<string, string>;
-      if (map[error.code]) return map[error.code];
-    }
-    return formatFailure(error, locale);
-  }
+export function XmlTemplateForm({
+  locale,
+  templateId,
+}: {
+  locale: Locale;
+  templateId: string | null;
+}) {
+  const t = exportMessages[locale];
+  const s = shellMessages[locale];
+  const v = viewMessages[locale];
+  const router = useRouter();
+  const toast = useToast();
+  const creating = templateId === null;
+  const { data, reload } = useResource(
+    () => apiGet<{ templates: TemplateRow[] }>("/api/admin/xml-templates"),
+    [templateId],
+  );
+  const record = data?.templates.find((r) => r.id === templateId) ?? null;
+  const [draft, setDraft] = useState({
+    taxFamily: "PPN_FAKTUR_KELUARAN",
+    versionTag: "",
+    sourceUrl:
+      "https://pajak.go.id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml",
+    sourceLabel: "",
+    sourceSha256: "",
+    xsdSchemaHash: "",
+    fixtureVerified: false,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const set = (patch: Partial<typeof draft>) =>
+    setDraft((d) => ({ ...d, ...patch }));
 
-  async function load() {
-    setLoading(true);
+  async function save() {
+    setSaving(true);
+    setError(null);
     try {
-      const payload = await apiGet<{ templates: TemplateRow[] }>(
-        "/api/admin/xml-templates",
-      );
-      setTemplates(payload.templates);
-    } catch (error) {
-      setFeedback(formatErr(error));
+      await apiPost("/api/admin/xml-templates", { action: "create", ...draft });
+      toast.success(t.templateSaved);
+      router.replace(`/${locale}/admin/xml-templates`);
+    } catch (failure) {
+      setError(templateError(failure, locale));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
-  useEffect(() => {
-    void load();
-  }, []);
-
-  async function onRegister(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setFeedback("");
+  async function change(status: XmlTemplateStatus) {
+    if (!record) return;
     try {
-      await apiPost("/api/admin/xml-templates", {
-        action: "create",
-        taxFamily,
-        versionTag,
-        sourceUrl,
-        sourceLabel,
-        sourceSha256,
-        xsdSchemaHash,
-        fixtureVerified,
-      });
-      setVersionTag("");
-      setSourceLabel("");
-      setSourceSha256("");
-      setXsdSchemaHash("");
-      setFixtureVerified(false);
-      await load();
-      setFeedback(t.templateSaved);
-    } catch (error) {
-      setFeedback(formatErr(error));
-    } finally {
-      setBusy(false);
+      await setStatus(record.id, status);
+      await reload();
+      toast.success(t.templateSaved);
+    } catch (failure) {
+      toast.error(templateError(failure, locale));
     }
   }
-
-  async function setStatus(templateId: string, status: XmlTemplateStatus) {
-    setBusy(true);
-    setFeedback("");
-    try {
-      await apiPost("/api/admin/xml-templates", {
-        action: "set_status",
-        templateId,
-        status,
-      });
-      await load();
-      setFeedback(t.templateSaved);
-    } catch (error) {
-      setFeedback(formatErr(error));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (loading) return <Skeleton className="h-40 w-full" />;
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold">{t.adminTitle}</h1>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          {t.adminIntro}
-        </p>
-      </div>
-
-      {feedback && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="rounded-md border p-4 text-sm"
-        >
-          {feedback}
-        </p>
-      )}
-
-      <form
-        onSubmit={onRegister}
-        className="space-y-4 rounded-lg border p-6 text-sm"
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-1 font-medium">
-            {t.familyLabel}
-            <select
-              value={taxFamily}
-              onChange={(e) => setTaxFamily(e.target.value)}
-              className="min-h-11 rounded-md border bg-background px-3 text-sm"
-            >
-              {allTaxFamilies
-                .filter((f) => f !== "UNCLASSIFIED")
-                .map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <Field
-            label={t.versionTagLabel}
-            value={versionTag}
-            onChange={(e) => setVersionTag(e.target.value)}
-            required
-          />
-          <Field
-            label={t.sourceUrlLabel}
-            value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-            required
-          />
-          <Field
-            label={t.sourceLabelField}
-            value={sourceLabel}
-            onChange={(e) => setSourceLabel(e.target.value)}
-            required
-          />
-          <Field
-            label={t.sourceShaField}
-            value={sourceSha256}
-            onChange={(e) => setSourceSha256(e.target.value)}
-            pattern="[a-fA-F0-9]{64}"
-            required
-          />
-          <Field
-            label={t.xsdHashField}
-            value={xsdSchemaHash}
-            onChange={(e) => setXsdSchemaHash(e.target.value)}
-            pattern="[a-fA-F0-9]{64}"
-            required
-          />
-        </div>
-        <label className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={fixtureVerified}
-            onChange={(e) => setFixtureVerified(e.target.checked)}
-          />
-          <span>{t.fixtureVerifiedLabel}</span>
-        </label>
-        <Submit busy={busy}>{t.registerButton}</Submit>
-      </form>
-
-      <div className="space-y-4">
-        {templates.map((tpl) => (
-          <article
-            key={tpl.id}
-            className="space-y-2 rounded-lg border p-5 text-xs"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <strong className="font-mono text-sm">
-                  {tpl.taxFamily} · {tpl.versionTag}
-                </strong>
-                <StatusBadge>{tpl.status}</StatusBadge>
-                <StatusBadge>
-                  fixtureVerified={String(tpl.fixtureVerified)}
-                </StatusBadge>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {tpl.status !== "VERIFIED" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => void setStatus(tpl.id, "VERIFIED")}
-                  >
-                    {t.verifyButton}
-                  </Button>
-                )}
-                {tpl.status !== "RETIRED" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => void setStatus(tpl.id, "RETIRED")}
-                  >
-                    {t.retireButton}
-                  </Button>
-                )}
-              </div>
-            </div>
-            <p className="break-all text-muted-foreground">
-              {tpl.sourceLabel} — {tpl.sourceUrl}
-            </p>
-            <p className="break-all font-mono">
-              {t.sourceShaLabel}: {tpl.sourceSha256} · {t.schemaShaLabel}:{" "}
-              {tpl.xsdSchemaHash}
-            </p>
-            {tpl.verifiedAt && (
-              <p className="text-muted-foreground">
-                {tpl.verifiedBy} ·{" "}
-                {formatDate(new Date(tpl.verifiedAt), locale)}
-              </p>
+    <FormPage
+      locale={locale}
+      model="xml-templates"
+      breadcrumbs={[
+        { label: s.menuXmlTemplates, href: `/${locale}/admin/xml-templates` },
+        {
+          label: creating
+            ? v.new
+            : (record?.versionTag ?? (data ? v.notFound : "…")),
+        },
+      ]}
+      recordId={templateId ?? undefined}
+      hrefFor={(id) => `/${locale}/admin/xml-templates/${id}`}
+      mode={creating ? "create" : "read"}
+      dirty={creating && draft.versionTag !== ""}
+      saving={saving}
+      onDiscard={() => router.push(`/${locale}/admin/xml-templates`)}
+      ribbon={
+        record?.status === "RETIRED"
+          ? statusLabel(locale, "RETIRED")
+          : undefined
+      }
+      loading={!creating && data === null}
+      statusBar={
+        record ? (
+          <StatusBar
+            steps={(["UNVERIFIED", "VERIFIED", "RETIRED"] as const).map(
+              (id) => ({ id, label: statusLabel(locale, id) }),
             )}
-          </article>
-        ))}
-      </div>
-    </div>
+            current={record.status}
+            label={t.familyStatusTitle}
+            buttons={
+              record.status === "UNVERIFIED" ? (
+                <Button type="button" onClick={() => void change("VERIFIED")}>
+                  <BadgeCheck aria-hidden="true" />
+                  <span>{t.verifyButton}</span>
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : undefined
+      }
+      gear={
+        record
+          ? (close) => (
+              <MenuItem
+                icon={
+                  record.status === "RETIRED" ? <ArchiveRestore /> : <Archive />
+                }
+                onSelect={() => {
+                  close();
+                  void change(
+                    record.status === "RETIRED" ? "UNVERIFIED" : "RETIRED",
+                  );
+                }}
+              >
+                {record.status === "RETIRED" ? v.unarchive : t.retireButton}
+              </MenuItem>
+            )
+          : undefined
+      }
+    >
+      {!creating && data && !record ? (
+        <p role="alert" className="text-sm">
+          {v.notFound}
+        </p>
+      ) : record ? (
+        <div className="space-y-8">
+          <SheetTitle
+            label={t.versionTagLabel}
+            aside={<StatusPill locale={locale} status={record.status} />}
+          >
+            <span className="font-mono">{record.versionTag}</span>
+          </SheetTitle>
+          <div className="grid gap-x-12 gap-y-6 lg:grid-cols-2">
+            <FieldGroup title={v.information}>
+              <FormField label={t.familyLabel} layout="inline">
+                <ReadValue mono>{record.taxFamily}</ReadValue>
+              </FormField>
+              <FormField label={t.sourceLabelField} layout="inline">
+                <ReadValue>{record.sourceLabel}</ReadValue>
+              </FormField>
+              <FormField label={t.sourceUrlLabel} layout="inline">
+                <ReadValue className="break-all">
+                  <a
+                    className="underline"
+                    href={record.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {record.sourceUrl}
+                  </a>
+                </ReadValue>
+              </FormField>
+              <FormField label={t.fixtureVerifiedLabel} layout="inline">
+                <ReadValue>{record.fixtureVerified ? v.yes : v.no}</ReadValue>
+              </FormField>
+            </FieldGroup>
+            <FieldGroup title={t.sourceShaLabel}>
+              <FormField label={t.sourceShaField} layout="inline">
+                <ReadValue mono className="text-xs break-all">
+                  {record.sourceSha256}
+                </ReadValue>
+              </FormField>
+              <FormField label={t.xsdHashField} layout="inline">
+                <ReadValue mono className="text-xs break-all">
+                  {record.xsdSchemaHash}
+                </ReadValue>
+              </FormField>
+              <FormField label={t.publishedLabel} layout="inline">
+                <ReadValue>{record.sourcePublishedAt?.slice(0, 10)}</ReadValue>
+              </FormField>
+            </FieldGroup>
+          </div>
+          {record.notes && <Notice>{record.notes}</Notice>}
+        </div>
+      ) : (
+        <FormBody
+          model="xml-templates"
+          onSubmit={() => void save()}
+          disabled={saving}
+        >
+          {error && (
+            <Notice tone="strong" role="alert">
+              {error}
+            </Notice>
+          )}
+          <Notice>{t.adminIntro}</Notice>
+          <FieldGroup columns={2}>
+            <FormField label={t.familyLabel} required layout="inline">
+              <Combobox
+                value={draft.taxFamily}
+                onChange={(value) => value && set({ taxFamily: value })}
+                options={allTaxFamilies.map((f) => ({ value: f, label: f }))}
+                labels={comboLabels(locale)}
+              />
+            </FormField>
+            <FormField label={t.versionTagLabel} required layout="inline">
+              <TextInput
+                value={draft.versionTag}
+                onChange={(e) => set({ versionTag: e.target.value })}
+                maxLength={64}
+                className="font-mono"
+                autoFocus
+              />
+            </FormField>
+            <FormField label={t.sourceUrlLabel} required layout="inline">
+              <TextInput
+                type="url"
+                value={draft.sourceUrl}
+                onChange={(e) => set({ sourceUrl: e.target.value })}
+                maxLength={500}
+              />
+            </FormField>
+            <FormField label={t.sourceLabelField} required layout="inline">
+              <TextInput
+                value={draft.sourceLabel}
+                onChange={(e) => set({ sourceLabel: e.target.value })}
+                maxLength={300}
+              />
+            </FormField>
+            <FormField label={t.sourceShaField} required layout="inline">
+              <TextInput
+                value={draft.sourceSha256}
+                onChange={(e) =>
+                  set({ sourceSha256: e.target.value.toLowerCase() })
+                }
+                maxLength={64}
+                className="font-mono text-xs"
+              />
+            </FormField>
+            <FormField label={t.xsdHashField} required layout="inline">
+              <TextInput
+                value={draft.xsdSchemaHash}
+                onChange={(e) =>
+                  set({ xsdSchemaHash: e.target.value.toLowerCase() })
+                }
+                maxLength={64}
+                className="font-mono text-xs"
+              />
+            </FormField>
+          </FieldGroup>
+          <Checkbox
+            label={t.fixtureVerifiedLabel}
+            checked={draft.fixtureVerified}
+            onChange={(e) => set({ fixtureVerified: e.target.checked })}
+          />
+        </FormBody>
+      )}
+    </FormPage>
   );
 }
