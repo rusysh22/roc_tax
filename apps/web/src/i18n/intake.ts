@@ -142,6 +142,12 @@ export const intakeMessages = {
     previewDocument: "Pratinjau",
     hidePreview: "Tutup pratinjau",
     downloadDocument: "Unduh",
+    deleteDocument: "Hapus dokumen",
+    deleteDocumentTitle: "Hapus dokumen ini?",
+    deleteDocumentBody:
+      "Berkas akan dihapus permanen dari penyimpanan, termasuk hasil baca OCR-nya. Data transaksi yang sudah diisi tidak berubah. Yang tersisa hanya catatan audit (nama berkas, ukuran, sidik jari SHA-256).",
+    documentDeleted: "Dokumen dihapus.",
+    documentDeletedOn: "Dihapus pada {date}",
     scanNotConfigured: "Pemindaian malware: belum dikonfigurasi",
     sha256: "SHA-256",
     size: "Ukuran",
@@ -189,6 +195,20 @@ export const intakeMessages = {
         "Kosongkan nomor identitas jika jenis diatur ke Belum diisi.",
     },
     errors: {
+      WORKSPACE_TERMINATED:
+        "Langganan ruang kerja ini sudah berakhir. Data hanya bisa dilihat dan diekspor.",
+      BILLING_OVERDUE:
+        "Ada invoice yang melewati jatuh tempo. Pembuatan data baru ditangguhkan sampai pembayaran dicatat.",
+      ALREADY_REQUESTED:
+        "Pengajuan berhenti berlangganan sudah ada untuk ruang kerja ini.",
+      NOT_CANCELLABLE:
+        "Pengajuan tidak bisa dibatalkan karena sudah melewati tanggal efektif.",
+      OWNER_ONLY:
+        "Hanya Pemilik ruang kerja yang dapat melakukan tindakan ini.",
+      SELLER_NOT_CONFIGURED:
+        "Data penerbit invoice (nama, alamat, rekening) belum dikonfigurasi di server.",
+      INVALID_PAYMENT_LINK:
+        "Tautan pembayaran harus berupa alamat HTTPS publik yang valid.",
       DUPLICATE_COMPANY_NITKU:
         "NITKU tersebut sudah terdaftar pada perusahaan lain di ruang kerja ini.",
       DUPLICATE_COUNTERPARTY_IDENTITY:
@@ -373,6 +393,12 @@ export const intakeMessages = {
     previewDocument: "Preview",
     hidePreview: "Hide preview",
     downloadDocument: "Download",
+    deleteDocument: "Delete document",
+    deleteDocumentTitle: "Delete this document?",
+    deleteDocumentBody:
+      "The file is permanently removed from storage, including its OCR results. Transaction data already entered is not changed. Only an audit record remains (file name, size, SHA-256 fingerprint).",
+    documentDeleted: "Document deleted.",
+    documentDeletedOn: "Deleted on {date}",
     scanNotConfigured: "Malware scan: not configured",
     sha256: "SHA-256",
     size: "Size",
@@ -419,6 +445,19 @@ export const intakeMessages = {
         "Leave the identity number empty when type is Not provided.",
     },
     errors: {
+      WORKSPACE_TERMINATED:
+        "This workspace subscription has ended. Data can only be viewed and exported.",
+      BILLING_OVERDUE:
+        "An invoice is past due. Creating new records is suspended until payment is recorded.",
+      ALREADY_REQUESTED:
+        "A cancellation request already exists for this workspace.",
+      NOT_CANCELLABLE:
+        "The request can no longer be withdrawn because its effective date has passed.",
+      OWNER_ONLY: "Only the workspace Owner can do this.",
+      SELLER_NOT_CONFIGURED:
+        "Invoice issuer details (name, address, bank account) are not configured on the server.",
+      INVALID_PAYMENT_LINK:
+        "The payment link must be a valid public HTTPS address.",
       DUPLICATE_COMPANY_NITKU:
         "That NITKU is already registered on another company in this workspace.",
       DUPLICATE_COUNTERPARTY_IDENTITY:

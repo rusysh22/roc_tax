@@ -17,6 +17,7 @@
 13. Use decimal-safe currency arithmetic (`Decimal`/integer minor units as appropriate); do not use binary floating-point for tax money.
 14. Add data minimization, privacy notice, legal agreements, export/delete workflows, data-retention policies.
 15. Maintain exact error states, progress, and event logs; report tests honestly.
+17. Keep `16_DATA_COMMITMENTS_REVIEW.md` true: any change that stores, shares, deletes or sends customer data must update the claim/evidence table and the customer-facing commitment texts in the same change.
 16. Follow `14_UI_STANDARDS.md` for every new field, menu, screen and feature: dictionary-backed `FormField` with a functional + technical info tip, code registry labels/colours for every enum, semantic CTA colours, `ListPage`/`usePaged` with 50 rows and bounded scrolling, bold totals, and header + tabs + line layouts. `tests/unit/ui-standards.test.ts` enforces it.
 
 ## DON'T

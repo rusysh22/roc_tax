@@ -34,6 +34,7 @@ export const shellMessages = {
     menuXmlTemplates: "Templat XML",
     menuOcrProviders: "Penyedia OCR",
     menuAdminBilling: "Penagihan",
+    menuAdminSales: "Sales & penawaran",
     atAGlance: "Sekilas",
   },
   en: {
@@ -68,6 +69,7 @@ export const shellMessages = {
     menuXmlTemplates: "XML templates",
     menuOcrProviders: "OCR providers",
     menuAdminBilling: "Billing",
+    menuAdminSales: "Sales & offers",
     atAGlance: "At a glance",
   },
 } satisfies Record<Locale, Record<string, string>>;

@@ -44,6 +44,7 @@ import { PagedFooter, usePaged } from "@/components/views/paged";
 import { SupportAccessPanel } from "@/components/reports/support-access-panel";
 import { cn } from "@/lib/utils";
 import { Submit, post } from "./forms";
+import { PrivacyPanel } from "./privacy-panel";
 import { TrialStrip } from "./trial-strip";
 
 type Snapshot = {
@@ -906,6 +907,12 @@ export function Workspace({
                 label: st.tabs.support,
                 content: <SupportAccessPanel locale={locale} />,
                 hidden: !manages,
+              },
+              {
+                id: "privacy",
+                label: st.privacy.tab,
+                content: <PrivacyPanel locale={locale} />,
+                hidden: !active,
               },
               {
                 id: "security",

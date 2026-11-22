@@ -9,7 +9,11 @@ import type { Locale } from "@/i18n/messages";
 import { ocrMessages } from "@/i18n/ocr";
 import { shellMessages } from "@/i18n/shell";
 import { viewMessages } from "@/i18n/views";
-import { ocrAdapterKeys, type OcrAdapterKey } from "@/lib/intake/ocr";
+import {
+  ocrAdapterKeys,
+  ocrAdapterRequirements,
+  type OcrAdapterKey,
+} from "@/lib/intake/ocr";
 import { Combobox } from "@/components/ui/combobox";
 import {
   Checkbox,
@@ -516,8 +520,7 @@ export function OcrProviderForm({
               {readField(
                 "ocrProvider.retentionPolicy",
                 t.retentionPolicyLabel,
-                record.retentionPolicy,
-                true,
+                codeLabel(locale, "retentionPolicy", record.retentionPolicy),
               )}
               {readField(
                 "ocrProvider.vendorApproved",
@@ -559,13 +562,25 @@ export function OcrProviderForm({
               >
                 <Combobox
                   value={draft.adapterKey}
-                  onChange={(value) =>
-                    value && set({ adapterKey: value as OcrAdapterKey })
-                  }
+                  onChange={(value) => {
+                    if (!value) return;
+                    const next = value as OcrAdapterKey;
+                    const previousDefault =
+                      ocrAdapterRequirements[draft.adapterKey].defaultModel;
+                    set({
+                      adapterKey: next,
+                      ...(!draft.model || draft.model === previousDefault
+                        ? { model: ocrAdapterRequirements[next].defaultModel }
+                        : {}),
+                    });
+                  }}
                   options={codeOptions(locale, "ocrAdapter", ocrAdapterKeys)}
                   labels={comboLabels(locale)}
                 />
               </FormField>
+              <Notice tone="info" title={t.adapterGuideTitle}>
+                {t.adapterGuides[draft.adapterKey]}
+              </Notice>
               {textField("endpointUrl", t.endpointUrlLabel, {
                 maxLength: 300,
                 type: "url",
@@ -596,10 +611,18 @@ export function OcrProviderForm({
               {textField("estimatedCostPerPageIdr", t.costPerPageLabel, {
                 className: "font-mono",
               })}
-              {textField("retentionPolicy", t.retentionPolicyLabel, {
-                maxLength: 60,
-                className: "font-mono",
-              })}
+              <FormField
+                field="ocrProvider.retentionPolicy"
+                label={t.retentionPolicyLabel}
+                layout="inline"
+              >
+                <Combobox
+                  value={draft.retentionPolicy}
+                  onChange={(value) => value && set({ retentionPolicy: value })}
+                  options={codeOptions(locale, "retentionPolicy")}
+                  labels={comboLabels(locale)}
+                />
+              </FormField>
             </FieldGroup>
           </div>
           <FormField

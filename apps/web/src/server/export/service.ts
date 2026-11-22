@@ -9,6 +9,7 @@ import {
   type BppuGovTreasurerOpt,
   type BppuTaxCertificate,
 } from "../../lib/export/bppu-spec";
+import { familyReadiness } from "../../lib/export/family-readiness";
 import {
   rationalToBppuPercent,
   serializeBpuBulkXml,
@@ -22,6 +23,7 @@ import type { TaxCrypto } from "../intake/crypto";
 import type { DocumentStorage } from "../intake/storage";
 import { AccessError, type Permission } from "../workspaces/policy";
 import { requireActor, requireMembership } from "../workspaces/service";
+import { assertWorkspaceWritable } from "../lifecycle/state";
 
 type Tx = Prisma.TransactionClient;
 
@@ -190,11 +192,27 @@ export function exportService(
   async function listAdminTemplates(sessionId: string) {
     return db.$transaction(async (tx) => {
       await requireSuperadmin(tx, sessionId);
-      const templates = await tx.xmlTemplate.findMany({
-        orderBy: [{ taxFamily: "asc" }, { createdAt: "desc" }],
-      });
+      const [templates, approvedRules] = await Promise.all([
+        tx.xmlTemplate.findMany({
+          orderBy: [{ taxFamily: "asc" }, { createdAt: "desc" }],
+        }),
+        tx.taxRule.findMany({
+          where: { catalogStatus: "SME_APPROVED" },
+          select: { taxFamily: true },
+          distinct: ["taxFamily"],
+        }),
+      ]);
+      const approvedFamilies = new Set(approvedRules.map((r) => r.taxFamily));
       return {
         officialBppuReference: OFFICIAL_BPPU_V3_SOURCE,
+        readiness: allTaxFamilies
+          .filter((family) => family !== "UNCLASSIFIED")
+          .map((family) =>
+            familyReadiness(family, {
+              templates: templates.filter((t) => t.taxFamily === family),
+              hasApprovedRule: approvedFamilies.has(family),
+            }),
+          ),
         templates: templates.map((t) => ({
           id: t.id,
           taxFamily: t.taxFamily,
@@ -461,6 +479,11 @@ export function exportService(
         "tax.export",
         async (tx, { session, membership }) => {
           const organizationId = membership.organizationId;
+          await assertWorkspaceWritable(
+            tx,
+            organizationId,
+            await databaseNow(tx),
+          );
           activeOrgId = organizationId;
           const now = await databaseNow(tx);
 
@@ -877,7 +900,8 @@ export function exportService(
         const batch = await tx.xmlExportBatch.findFirst({
           where: { id: batchId, organizationId },
         });
-        if (!batch) throw new ExportError("NOT_FOUND");
+        if (!batch || batch.storageKey.includes("/purged-"))
+          throw new ExportError("NOT_FOUND");
 
         const bytes = await storage.get(organizationId, batch.storageKey);
         if (sha256Hex(bytes) !== batch.xmlSha256) {

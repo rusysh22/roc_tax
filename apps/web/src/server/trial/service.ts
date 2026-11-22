@@ -5,6 +5,7 @@ import { requireActor, requireMembership } from "../workspaces/service";
 import { AccessError } from "../workspaces/policy";
 import { resolveWorkspaceEntitlements } from "../billing/entitlements";
 import { TRIAL_DURATION_MS, jakartaDate, trialSnapshot } from "./state";
+import { assertWorkspaceWritable } from "../lifecycle/state";
 type Tx = Prisma.TransactionClient;
 export class TrialError extends Error {
   constructor(
@@ -36,11 +37,53 @@ export type CreationAllowance = {
   usedThisMonth: number;
   remainingThisMonth: number | null;
 };
+/** Plan code recorded on usage receipts metered under a per-invoice offer. */
+export const PER_INVOICE_PLAN_CODE = "PER_INVOICE";
+
+export function jakartaMonthStart(now: Date) {
+  return new Date(`${jakartaDate(now).slice(0, 7)}-01T00:00:00+07:00`);
+}
+
+/** Active per-invoice offer (signed offer letter entered by a Superadmin). */
+export async function activePerInvoiceOffer(
+  tx: Tx,
+  organizationId: string,
+  now: Date,
+) {
+  const offer = await tx.organizationOffer.findUnique({
+    where: { organizationId },
+  });
+  if (!offer || !offer.active || offer.pricingModel !== "PER_INVOICE")
+    return null;
+  const today = jakartaDate(now);
+  const from = offer.effectiveFrom.toISOString().slice(0, 10);
+  const to = offer.effectiveTo?.toISOString().slice(0, 10) ?? null;
+  if (today < from || (to !== null && today > to)) return null;
+  return offer;
+}
+
 export async function entitledAllowance(
   tx: Tx,
   organizationId: string,
   now: Date,
 ): Promise<CreationAllowance | null> {
+  // Sales-led per-invoice offer: metered usage instead of a plan quota.
+  const offer = await activePerInvoiceOffer(tx, organizationId, now);
+  if (offer) {
+    const used = await tx.entitledUsage.count({
+      where: { organizationId, createdAt: { gte: jakartaMonthStart(now) } },
+    });
+    return {
+      mode: "ENTITLED",
+      planCode: PER_INVOICE_PLAN_CODE,
+      monthlyLimit: offer.monthlyInvoiceCap,
+      usedThisMonth: used,
+      remainingThisMonth:
+        offer.monthlyInvoiceCap === null
+          ? null
+          : Math.max(0, offer.monthlyInvoiceCap - used),
+    };
+  }
   const resolved = await resolveWorkspaceEntitlements(tx, organizationId, now);
   if (!resolved.paidAccessEnabled && !resolved.nonProductionTestActive)
     return null;
@@ -161,6 +204,11 @@ export function trialService(db: PrismaClient) {
         );
         if (session.activeOrganizationId !== organizationId)
           throw new AccessError("CONFLICT");
+        await assertWorkspaceWritable(
+          tx,
+          organizationId,
+          await databaseNow(tx),
+        );
         const hashes = parsed.map((p) =>
           createHash("sha256")
             .update(JSON.stringify([organizationId, p.payloadFingerprint]))

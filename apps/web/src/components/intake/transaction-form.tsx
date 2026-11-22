@@ -22,7 +22,8 @@ import type { Locale } from "@/i18n/messages";
 import { intakeMessages } from "@/i18n/intake";
 import { taxMessages } from "@/i18n/tax";
 import { shellMessages } from "@/i18n/shell";
-import { viewMessages } from "@/i18n/views";
+import { fmt, viewMessages } from "@/i18n/views";
+import { formatDate } from "@/i18n/format";
 import { lineAmount, sumAmounts } from "@/lib/intake/decimal";
 import {
   documentTypes,
@@ -34,7 +35,7 @@ import { can, type Role } from "@/server/workspaces/policy";
 import type { DuplicateWarning } from "@/server/intake/service";
 import { Button } from "@/components/ui/button";
 import { Combobox, type ComboOption } from "@/components/ui/combobox";
-import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import {
   Checkbox,
   FieldGroup,
@@ -62,6 +63,7 @@ import { TransactionOcrPanel } from "@/components/ocr/transaction-ocr";
 import {
   ApiFailure,
   apiGet,
+  apiDelete,
   apiPost,
   apiUpload,
   formatAmountString,
@@ -111,6 +113,7 @@ type Detail = {
       sizeBytes: number;
       sha256: string;
       createdAt: string;
+      deletedAt: string | null;
     }[];
     comments: {
       id: string;
@@ -241,6 +244,7 @@ export function TransactionForm({
   const tx = detail.data?.transaction ?? null;
   const role = detail.data?.role ?? companies.data?.role;
   const canPrepare = role ? can(role, "draft.prepare") : false;
+  const canManageTeam = role ? can(role, "team.manage") : false;
   const editable = creating
     ? canPrepare
     : Boolean(tx && canPrepare && allows(tx.status, "edit"));
@@ -260,6 +264,22 @@ export function TransactionForm({
   const [reason, setReason] = useState("");
   const [soleAck, setSoleAck] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
+  const [docBusy, setDocBusy] = useState(false);
+  async function deleteDocument() {
+    if (!tx || !deletingDoc) return;
+    setDocBusy(true);
+    try {
+      await apiDelete(`/api/transactions/${tx.id}/documents/${deletingDoc}`);
+      toast.success(t.documentDeleted);
+      setDeletingDoc(null);
+      await detail.reload();
+    } catch (failure) {
+      toast.error(formatFailure(failure, locale));
+    } finally {
+      setDocBusy(false);
+    }
+  }
   const [uploading, setUploading] = useState(false);
 
   const reloadAll = useCallback(async () => {
@@ -695,6 +715,26 @@ export function TransactionForm({
             <ul className="divide-y rounded-lg border">
               {tx.documents.map((doc) => {
                 const url = `/api/transactions/${tx.id}/documents/${doc.id}`;
+                if (doc.deletedAt)
+                  return (
+                    <li
+                      key={doc.id}
+                      className="space-y-1 px-4 py-3 text-sm text-muted-foreground"
+                    >
+                      <span className="font-medium break-all line-through">
+                        {doc.originalName}
+                      </span>
+                      <p className="text-xs">
+                        {fmt(t.documentDeletedOn, {
+                          date: formatDate(new Date(doc.deletedAt), locale),
+                        })}{" "}
+                        · {t.sha256}:{" "}
+                        <span className="font-mono break-all">
+                          {doc.sha256}
+                        </span>
+                      </p>
+                    </li>
+                  );
                 return (
                   <li key={doc.id} className="space-y-2 px-4 py-3 text-sm">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -727,6 +767,18 @@ export function TransactionForm({
                             <span>{t.downloadDocument}</span>
                           </a>
                         </Button>
+                        {(canPrepare || canManageTeam) && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-danger hover:bg-danger-soft"
+                            onClick={() => setDeletingDoc(doc.id)}
+                          >
+                            <Trash2 aria-hidden="true" />
+                            <span>{t.deleteDocument}</span>
+                          </Button>
+                        )}
                       </span>
                     </div>
                     <p className="font-mono text-xs break-all text-muted-foreground">
@@ -753,6 +805,16 @@ export function TransactionForm({
               })}
             </ul>
           )}
+          <ConfirmDialog
+            open={deletingDoc !== null}
+            title={t.deleteDocumentTitle}
+            body={t.deleteDocumentBody}
+            confirmLabel={t.deleteDocument}
+            cancelLabel={v.cancel}
+            busy={docBusy}
+            onConfirm={() => void deleteDocument()}
+            onCancel={() => setDeletingDoc(null)}
+          />
           {tx && canPrepare && allows(tx.status, "attach") && (
             <label className="inline-flex cursor-pointer items-center gap-2">
               <span className="inline-flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface px-4 text-sm font-medium shadow-xs hover:bg-surface-2">

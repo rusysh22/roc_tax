@@ -599,8 +599,14 @@ export const fieldDictionary = {
     ["Processor notice", "Data processor information for users."],
   ),
   "ocrProvider.vendorApproved": f(
-    ["Vendor disetujui", "Vendor sudah lolos peninjauan hukum dan keamanan."],
-    ["Vendor approved", "Vendor passed legal and security review."],
+    [
+      "Vendor disetujui",
+      "Centang hanya setelah perjanjian pemrosesan data, lokasi pemrosesan, dan larangan memakai data pelanggan untuk melatih AI diperiksa.",
+    ],
+    [
+      "Vendor approved",
+      "Tick only after the data processing agreement, processing location and the ban on training AI with customer data have been checked.",
+    ],
   ),
   "ocrProvider.enabled": f(
     ["Aktif", "Penyedia dapat dipilih oleh ruang kerja."],
@@ -836,6 +842,179 @@ export const fieldDictionary = {
   "admin.jobStatus": f(
     ["Status pekerjaan", "Saring pekerjaan OCR berdasarkan status."],
     ["Job status", "Filter OCR jobs by status."],
+  ),
+  "lead.companyName": f(
+    ["Nama perusahaan", "Nama badan usaha yang akan memakai SerenTax."],
+    ["Company name", "The business that will use SerenTax."],
+  ),
+  "lead.picName": f(
+    ["Nama PIC", "Orang yang kami hubungi untuk pendaftaran ini."],
+    ["Person in charge", "The person we contact about this registration."],
+  ),
+  "lead.email": f(
+    ["Email PIC", "Kami mengirim tindak lanjut ke email ini."],
+    ["PIC email", "We send the follow-up to this email."],
+  ),
+  "lead.phone": f(
+    ["Nomor telepon", "Nomor yang bisa dihubungi, misalnya +62 812 xxxx xxxx."],
+    ["Phone number", "A reachable number, e.g. +62 812 xxxx xxxx."],
+  ),
+  "lead.npwp": f(
+    ["NPWP perusahaan (opsional)", "15 atau 16 digit; disimpan terenkripsi."],
+    ["Company tax ID / NPWP (optional)", "15 or 16 digits; stored encrypted."],
+  ),
+  "lead.estimatedMonthlyInvoices": f(
+    [
+      "Perkiraan faktur per bulan",
+      "Membantu kami menyiapkan penawaran harga per faktur.",
+    ],
+    [
+      "Estimated invoices per month",
+      "Helps us prepare a per-invoice price offer.",
+    ],
+  ),
+  "lead.message": f(
+    [
+      "Kebutuhan Anda (opsional)",
+      "Ceritakan proses pajak saat ini atau jenis pajak yang diproses.",
+    ],
+    [
+      "Your needs (optional)",
+      "Describe your current tax process or the tax types you handle.",
+    ],
+  ),
+  "lead.status": f(
+    ["Status tindak lanjut", "Tahap penanganan prospek oleh tim sales."],
+    ["Follow-up status", "Where the sales team is with this lead."],
+  ),
+  "lead.notes": f(
+    ["Catatan internal", "Hanya terlihat oleh superadmin."],
+    ["Internal notes", "Visible to superadmins only."],
+  ),
+  "offer.pricingModel": f(
+    [
+      "Model harga",
+      "Langganan (kuota paket) atau per faktur (dihitung per faktur yang diproses).",
+    ],
+    [
+      "Pricing model",
+      "Subscription (plan quota) or per invoice (charged per processed invoice).",
+    ],
+  ),
+  "offer.pricePerInvoiceIdr": f(
+    ["Harga per faktur (IDR)", "Sesuai surat penawaran; belum termasuk pajak."],
+    ["Price per invoice (IDR)", "As in the offer letter; excludes tax."],
+  ),
+  "offer.minimumMonthlyIdr": f(
+    [
+      "Minimum bulanan (IDR)",
+      "Tagihan minimum per bulan; isi 0 bila tidak ada.",
+    ],
+    ["Monthly minimum (IDR)", "Minimum monthly charge; 0 when none."],
+  ),
+  "offer.monthlyInvoiceCap": f(
+    [
+      "Batas faktur per bulan",
+      "Opsional; transaksi baru ditolak setelah batas tercapai. Kosongkan untuk tanpa batas.",
+    ],
+    [
+      "Monthly invoice cap",
+      "Optional; new transactions are refused once reached. Leave empty for no cap.",
+    ],
+  ),
+  "offer.offerReference": f(
+    [
+      "Nomor surat penawaran",
+      "Referensi dokumen penawaran yang disetujui pelanggan.",
+    ],
+    [
+      "Offer letter reference",
+      "Reference of the offer document the customer accepted.",
+    ],
+  ),
+  "offer.effectiveFrom": f(
+    ["Berlaku mulai", "Tanggal mulai penawaran (WIB)."],
+    ["Effective from", "Offer start date (WIB)."],
+  ),
+  "offer.effectiveTo": f(
+    ["Berlaku sampai", "Opsional; kosongkan bila tanpa batas waktu."],
+    ["Effective to", "Optional; leave empty when open-ended."],
+  ),
+  "offer.active": f(
+    ["Aktif", "Nonaktifkan untuk menghentikan penagihan per faktur sementara."],
+    ["Active", "Turn off to pause per-invoice billing."],
+  ),
+  "offer.vatRatePercent": f(
+    [
+      "Tarif PPN invoice (%)",
+      "Sesuai surat penawaran dan ketentuan pajak penjual; isi 0 bila tidak dipungut.",
+    ],
+    [
+      "Invoice VAT rate (%)",
+      "As in the offer letter and the seller's tax position; 0 when not charged.",
+    ],
+  ),
+  "offer.paymentTermDays": f(
+    [
+      "Jatuh tempo (hari)",
+      "Jumlah hari sejak invoice diterbitkan sampai jatuh tempo.",
+    ],
+    ["Payment term (days)", "Days from issue date until the invoice is due."],
+  ),
+  "offer.notes": f(
+    ["Catatan", "Catatan internal tentang penawaran ini."],
+    ["Notes", "Internal notes about this offer."],
+  ),
+  "termination.reason": f(
+    ["Alasan berhenti (opsional)", "Membantu kami memperbaiki layanan."],
+    ["Reason for leaving (optional)", "Helps us improve the service."],
+  ),
+  "invoice.period": f(
+    ["Periode tagihan", "Bulan pemakaian yang ditagih (YYYY-MM, WIB)."],
+    ["Billing period", "Usage month being billed (YYYY-MM, WIB)."],
+  ),
+  "invoice.paymentLink": f(
+    [
+      "Tautan pembayaran (opsional)",
+      "Tautan dari payment gateway Anda (HTTPS). Kosongkan bila hanya transfer bank.",
+    ],
+    [
+      "Payment link (optional)",
+      "A link from your payment gateway (HTTPS). Leave empty for bank transfer only.",
+    ],
+  ),
+  "invoice.paidOn": f(
+    ["Tanggal dibayar", "Tanggal dana diterima."],
+    ["Paid on", "Date the funds were received."],
+  ),
+  "invoice.paymentMethod": f(
+    ["Metode pembayaran", "Misalnya transfer bank atau nama payment gateway."],
+    [
+      "Payment method",
+      "For example bank transfer or the payment gateway name.",
+    ],
+  ),
+  "invoice.paymentReference": f(
+    ["Referensi pembayaran", "Nomor bukti transfer atau ID transaksi gateway."],
+    ["Payment reference", "Transfer receipt number or gateway transaction ID."],
+  ),
+  "invoice.voidReason": f(
+    ["Alasan pembatalan", "Wajib; tercatat di log audit."],
+    ["Void reason", "Required; recorded in the audit log."],
+  ),
+  "lifecycle.workspace": f(
+    ["Ruang kerja", "Ruang kerja yang langganannya diakhiri."],
+    ["Workspace", "The workspace whose subscription is ended."],
+  ),
+  "lifecycle.reason": f(
+    [
+      "Alasan",
+      "Misalnya kontrak selesai atau tunggakan pembayaran. Tercatat di log audit.",
+    ],
+    [
+      "Reason",
+      "For example contract ended or unpaid invoices. Recorded in the audit log.",
+    ],
   ),
   "ocr.provider": f(
     ["Penyedia OCR", "Penyedia yang dipakai untuk membaca dokumen."],

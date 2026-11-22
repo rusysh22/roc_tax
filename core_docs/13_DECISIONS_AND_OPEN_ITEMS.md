@@ -189,3 +189,47 @@ Requested by the user: limit scrolling, paginate every list at 50 rows, colour C
 - **Settings** rewritten as header + tabs (Profile, Workspaces, Team, Roles & permissions, Approval, Support access, Security & sessions) with line tables; the role matrix is rendered from `rolePermissions` in `server/workspaces/policy.ts`.
 - **Enforcement:** `tests/unit/ui-standards.test.ts` fails on raw technical codes in i18n strings (allow-list comment `// ui-standards-allow:` for documented CSV value formats), on incomplete registry/dictionary entries, and on raw `<select>` or legacy labels in components.
 - **Open items:** the superadmin overview and billing admin pages still contain some English-only diagnostic headers; webhook event logs intentionally show provider event identifiers.
+
+## Toward a 10Tax-style offering — 2026-11-22
+
+Requested by the user after comparing SerenTax with 10Tax: AI invoice extraction configurable by the product owner, a PPN (Faktur Pajak) framework, 10Tax-like data controls, a sales-led registration path, and per-invoice pricing. No 10Tax text, branding or legal wording was copied.
+
+- **AI/OCR vendors** (`server/ocr/providers.ts`, guide `15_AI_OCR_PROVIDERS.md`): six adapters selectable in Superadmin → OCR providers: Claude (Anthropic API), Claude via AWS Bedrock, AWS Textract, Google Document AI, an OpenAI-compatible endpoint, and a generic HTTP contract. Credentials stay in server env vars (template in `.env.example`); the database holds only variable names. Save-time rules: endpoint and secret are required per adapter, and external adapters need vendor approval before they can be enabled. Output is still sanitized and human-verified. New dependencies (exact, at least two weeks old): `@anthropic-ai/sdk@1.6.0`, `@anthropic-ai/bedrock-sdk@1.1.1`, `@aws-sdk/client-textract@3.1164.0`, `google-auth-library@11.3.3`. `npm audit --omit=dev` shows only the pre-existing `effect` advisory. Migration `202611220013_ocr_vendor_adapters`. **Open:** choose and contract a vendor (with a DPA and region), then test against real Faktur Pajak samples. Server-side refusal fallbacks are not enabled because the model is owner-configurable; a refusal fails the job and the user falls back to manual entry.
+- **PPN framework** (`lib/export/family-readiness.ts`, `lib/export/ppn-faktur.ts`): six readiness gates per tax family (official template, source hash, XSD order, serializer, official-sample fixture tests, SME-approved rules), shown in Superadmin → XML templates. The PPN data model and completeness validation exist; `serializePpnFakturXml` always refuses (`TEMPLATE_UNVERIFIED`). Official DJP element names were deliberately not invented. **Open:** obtain the official Coretax Faktur Pajak template/XSD and a Tax SME-approved transaction-code and rate catalog, then implement the serializer against the official sample.
+- **Data controls:**
+  - Customer document deletion at any status. The file and its OCR candidates are removed; a tombstone keeps the name, size and SHA-256; the deletion is audited (`DOCUMENT_DELETED`). OCR job records stay so monthly OCR caps cannot be bypassed. The `(transactionId, sha256)` uniqueness moved to the application layer so a deleted file can be uploaded again (migration `202611220014_document_deletion`).
+  - Owner/Admin JSON workspace export with decrypted tax IDs, audited as `DATA_EXPORTED`.
+  - Settings → Data & privacy tab: commitments (including no AI training on customer data), stored-document counts, retention and data location from `DATA_*` env vars, and sub-processors from `PLATFORM_SUBPROCESSORS` plus the workspace's OCR vendor.
+  - **Open:** automated purge after termination (the policy is displayed, but no termination workflow exists yet); legal review of the commitment wording.
+- **Sales-led registration:**
+  - Public `/register` page (header button "Daftar via sales"). It has a honeypot and a limit of 5 submissions per requester-hash per hour, and the NPWP is encrypted.
+  - Superadmin → Sales & offers lists the leads, with follow-up status and notes. When `SALES_NOTIFY_EMAIL` is set, each new lead is also e-mailed there.
+  - Self-serve sign-up and the trial are unchanged.
+  - Migration `202611220015_sales_leads_offers`.
+- **Per-invoice pricing:**
+  - Each workspace has an `OrganizationOffer` entered by a superadmin from the signed offer letter: model, price per invoice, monthly minimum, optional monthly cap, reference, and effective dates. Prices are never hard-coded.
+  - While an offer is active, `entitledAllowance` lets the workspace create transactions without a trial or license.
+  - Each new transaction writes a durable `EntitledUsage` receipt with plan code `PER_INVOICE`; voiding does not refund it.
+  - Monthly charge = max(invoices × price, minimum), computed decimal-safe and shown in bold on the Subscription page along with a 6-month history.
+  - **Open:** invoice/tax-document generation and payment collection remain outside SerenTax.
+
+## Termination, automatic deletion, invoices and data-commitment review — 2026-11-22
+
+- **Termination lifecycle** (`server/lifecycle`, migration `202611220016_termination_invoices`):
+  - The Owner requests cancellation in Settings → Data & privacy and can withdraw it before the effective date. The notice period is `DATA_TERMINATION_NOTICE_DAYS`, default 30.
+  - After the effective date the workspace is read-only. `assertWorkspaceWritable` blocks transaction creation (manual and import), document upload, OCR and XML export. Reading and data export continue.
+  - After `DATA_RETENTION_DAYS_AFTER_TERMINATION`, the daily job (`npm run data:lifecycle`, or `POST /api/internal/lifecycle` with `x-job-token`) deletes stored documents (tombstones, `deletedBy: system:retention`) and generated XML files. Transactions, tax snapshots and the audit log are kept. Nothing is purged while retention is unset.
+  - Superadmins can end a subscription immediately (Sales & offers → Subscription lifecycle).
+  - Audit events: `TERMINATION_REQUESTED`, `TERMINATION_CANCELLED`, `WORKSPACE_TERMINATED`, `DATA_PURGED`.
+- **Invoices** (`server/invoicing`):
+  - Superadmins generate monthly drafts from per-invoice usage (`EntitledUsage` receipts with plan code `PER_INVOICE`). Charge = max(invoices × price, minimum); VAT is the offer's `vatRatePercent`, half-up, and is never hard-coded.
+  - Issuing allocates a sequential number `<BILLING_INVOICE_PREFIX>/YYYY/MM/NNNN` under an advisory lock and sets the due date from the offer's `paymentTermDays`. It is refused until the issuer name, address and bank account env vars are set.
+  - Payment is by bank transfer (details printed) or an optional gateway payment link. Superadmins record payments (method, reference, date) or void invoices.
+  - Customers see Subscription → Invoices and a printable `/[locale]/invoice/[id]` page (browser print → PDF).
+  - Optional suspension of new records when an invoice is `BILLING_SUSPEND_AFTER_DAYS_OVERDUE` days past due.
+  - **Open:** automatic gateway integration (webhook-confirmed payments) and e-Faktur for SerenTax's own sales invoices.
+- **Data-commitment review** (`16_DATA_COMMITMENTS_REVIEW.md`):
+  - Each customer-facing claim was checked against the code, and over-broad wording was corrected.
+  - Added: the support-access exception, the vendor no-training approval condition, precise audit events, and the customer's own tax-record retention obligation.
+  - The public privacy page now describes the real processing and stays marked as a draft.
+  - **This is not a legal sign-off.** The UU PDP decisions (roles, processing basis, rights process, 3×24-hour breach notification, cross-border transfer, DPO, Terms of Use) remain open for counsel.

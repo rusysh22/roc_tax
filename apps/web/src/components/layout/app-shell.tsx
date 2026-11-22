@@ -265,13 +265,13 @@ export function AppShell({
             />
             <Link
               href={current.module.href}
-              className="truncate px-2 text-sm font-semibold"
+              className="shrink-0 px-2 text-sm font-semibold whitespace-nowrap"
             >
               {current.module.label}
             </Link>
             <nav
               aria-label={current.module.label}
-              className="hidden items-center gap-0.5 xl:flex"
+              className="hidden min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] xl:flex [&::-webkit-scrollbar]:hidden"
             >
               {current.module.items.length > 1 &&
                 current.module.items.map((item) => (
@@ -281,7 +281,7 @@ export function AppShell({
                     aria-current={
                       current.item.href === item.href ? "page" : undefined
                     }
-                    className="rounded-md px-2.5 py-1.5 text-sm text-navbar-muted transition-colors hover:bg-navbar-hover hover:text-navbar-foreground aria-[current=page]:text-navbar-foreground"
+                    className="shrink-0 rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap text-navbar-muted transition-colors hover:bg-navbar-hover hover:text-navbar-foreground aria-[current=page]:text-navbar-foreground"
                   >
                     {item.label}
                   </Link>

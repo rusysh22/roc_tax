@@ -45,6 +45,32 @@ export const ocrMessages = {
       NONE: "Manual saja (tanpa OCR)",
       SYNTHETIC_TEST: "Uji lokal tanpa jaringan",
       EXTERNAL_NOT_CONFIGURED: "Penyedia eksternal (belum siap)",
+      ANTHROPIC_CLAUDE: "Claude (Anthropic API)",
+      AWS_BEDROCK_CLAUDE: "Claude via AWS Bedrock",
+      AWS_TEXTRACT: "AWS Textract (Analyze Expense)",
+      GOOGLE_DOCUMENT_AI: "Google Document AI (Invoice Parser)",
+      OPENAI_COMPATIBLE: "Endpoint kompatibel OpenAI",
+      GENERIC_HTTP: "HTTP generik (kontrak SerenTax)",
+    } satisfies Record<OcrAdapterKey, string>,
+    adapterGuideTitle: "Cara menyiapkan adaptor ini",
+    adapterGuides: {
+      NONE: "Tidak memanggil layanan apa pun. Pengguna mengisi data secara manual.",
+      SYNTHETIC_TEST:
+        "Untuk pengujian lokal saja; tidak ada data yang dikirim ke luar.",
+      EXTERNAL_NOT_CONFIGURED:
+        "Penanda penyedia yang belum siap; semua permintaan ditolak.",
+      ANTHROPIC_CLAUDE:
+        "Isi nama variabel rahasia (mis. OCR_ANTHROPIC_API_KEY) lalu set kunci API Anthropic di env server. Model bawaan: claude-opus-5-5. Endpoint dikosongkan.", // ui-standards-allow: superadmin setup instructions
+      AWS_BEDROCK_CLAUDE:
+        "Isi Region AWS (mis. ap-southeast-3 untuk Jakarta bila model tersedia di sana, atau ap-southeast-1). Variabel rahasia berisi kunci API Bedrock atau ACCESS_KEY:SECRET_KEY; kosongkan untuk memakai IAM role server. Model: anthropic.claude-opus-5-5.", // ui-standards-allow: superadmin setup instructions
+      AWS_TEXTRACT:
+        "Isi Region AWS. Variabel rahasia berisi ACCESS_KEY:SECRET_KEY; kosongkan untuk memakai IAM role server. Model tidak dipakai.", // ui-standards-allow: superadmin setup instructions
+      GOOGLE_DOCUMENT_AI:
+        "Buat processor Invoice Parser di Google Cloud. Endpoint = URL ...:process milik processor. Variabel rahasia berisi JSON service account (mentah atau base64).", // ui-standards-allow: superadmin setup instructions
+      OPENAI_COMPATIBLE:
+        "Endpoint = URL lengkap .../chat/completions. Variabel rahasia berisi kunci API (Bearer). Isi nama model. Hanya gambar (JPG/PNG/WebP); PDF memakai adaptor lain.", // ui-standards-allow: superadmin setup instructions
+      GENERIC_HTTP:
+        "Endpoint layanan Anda menerima JSON berisi berkas base64 dan mengembalikan field sesuai kontrak di core_docs/15_AI_OCR_PROVIDERS.md. Variabel rahasia berisi token Bearer.", // ui-standards-allow: superadmin setup instructions
     } satisfies Record<OcrAdapterKey, string>,
     endpointUrlLabel: "URL endpoint HTTPS (opsional, dicek SSRF)",
     secretRefLabel: "Nama variabel rahasia server (opsional)",
@@ -55,7 +81,8 @@ export const ocrMessages = {
     costPerPageLabel: "Estimasi biaya per halaman (IDR)",
     retentionPolicyLabel: "Kebijakan retensi",
     processorNoticeLabel: "Pemberitahuan pemroses / dasar pemrosesan",
-    vendorApprovedLabel: "Vendor telah disetujui untuk pemrosesan dokumen",
+    vendorApprovedLabel:
+      "Vendor disetujui (perjanjian pemrosesan data, region, dan larangan pelatihan AI dengan data pelanggan sudah diperiksa)",
     enabledLabel: "Aktifkan penyedia ini untuk dipilih tenant",
     secretReady: "Env rahasia tersedia",
     secretMissing: "Env rahasia belum disetel",
@@ -109,6 +136,9 @@ export const ocrMessages = {
         "Endpoint harus menggunakan HTTPS publik yang valid (alamat lokal/privat diblokir untuk mencegah SSRF).",
       INVALID_SECRET_REF:
         "Nama referensi rahasia harus huruf kapital, angka, dan garis bawah.",
+      ENDPOINT_REQUIRED: "Jenis adaptor ini wajib memiliki URL endpoint HTTPS.",
+      SECRET_REF_REQUIRED:
+        "Jenis adaptor ini wajib memiliki nama variabel rahasia server (kunci API).",
       PROVIDER_NOT_ALLOWED:
         "Penyedia OCR tersebut tidak diaktifkan oleh platform.",
       VENDOR_NOT_APPROVED:
@@ -178,6 +208,31 @@ export const ocrMessages = {
       NONE: "Manual only (no OCR)",
       SYNTHETIC_TEST: "Local test (no network)",
       EXTERNAL_NOT_CONFIGURED: "External provider (not ready)",
+      ANTHROPIC_CLAUDE: "Claude (Anthropic API)",
+      AWS_BEDROCK_CLAUDE: "Claude via AWS Bedrock",
+      AWS_TEXTRACT: "AWS Textract (Analyze Expense)",
+      GOOGLE_DOCUMENT_AI: "Google Document AI (Invoice Parser)",
+      OPENAI_COMPATIBLE: "OpenAI-compatible endpoint",
+      GENERIC_HTTP: "Generic HTTP (SerenTax contract)",
+    } satisfies Record<OcrAdapterKey, string>,
+    adapterGuideTitle: "How to set up this adapter",
+    adapterGuides: {
+      NONE: "Calls no service. Users enter data manually.",
+      SYNTHETIC_TEST: "Local testing only; no data leaves the server.",
+      EXTERNAL_NOT_CONFIGURED:
+        "Placeholder for a provider that is not ready; every request is refused.",
+      ANTHROPIC_CLAUDE:
+        "Enter a secret variable name (e.g. OCR_ANTHROPIC_API_KEY) and set the Anthropic API key in the server env. Default model: claude-opus-5-5. Leave the endpoint empty.", // ui-standards-allow: superadmin setup instructions
+      AWS_BEDROCK_CLAUDE:
+        "Enter the AWS region (e.g. ap-southeast-3 for Jakarta when the model is offered there, or ap-southeast-1). The secret holds a Bedrock API key or ACCESS_KEY:SECRET_KEY; leave it empty to use the server's IAM role. Model: anthropic.claude-opus-5-5.", // ui-standards-allow: superadmin setup instructions
+      AWS_TEXTRACT:
+        "Enter the AWS region. The secret holds ACCESS_KEY:SECRET_KEY; leave it empty to use the server's IAM role. Model is not used.", // ui-standards-allow: superadmin setup instructions
+      GOOGLE_DOCUMENT_AI:
+        "Create an Invoice Parser processor in Google Cloud. Endpoint = the processor's ...:process URL. The secret holds the service-account JSON (raw or base64).", // ui-standards-allow: superadmin setup instructions
+      OPENAI_COMPATIBLE:
+        "Endpoint = full .../chat/completions URL. The secret holds the API key (Bearer). Enter the model name. Images only (JPG/PNG/WebP); use another adapter for PDFs.", // ui-standards-allow: superadmin setup instructions
+      GENERIC_HTTP:
+        "Your service endpoint receives JSON with the base64 file and returns fields per the contract in core_docs/15_AI_OCR_PROVIDERS.md. The secret holds a Bearer token.", // ui-standards-allow: superadmin setup instructions
     } satisfies Record<OcrAdapterKey, string>,
     endpointUrlLabel: "HTTPS endpoint URL (optional, SSRF-checked)",
     secretRefLabel: "Server secret variable name (optional)",
@@ -188,7 +243,8 @@ export const ocrMessages = {
     costPerPageLabel: "Estimated cost per page (IDR)",
     retentionPolicyLabel: "Retention policy",
     processorNoticeLabel: "Processor notice / processing basis",
-    vendorApprovedLabel: "Vendor approved for document processing",
+    vendorApprovedLabel:
+      "Vendor approved (data processing agreement, region and the ban on training AI with customer data were checked)",
     enabledLabel: "Enable provider for tenant selection",
     secretReady: "Server secret present",
     secretMissing: "Server secret missing",
@@ -242,6 +298,9 @@ export const ocrMessages = {
         "Endpoint URL must be a valid public HTTPS URL (loopback and private networks are blocked against SSRF).",
       INVALID_SECRET_REF:
         "Secret reference must be an uppercase variable name (letters, digits, underscores).",
+      ENDPOINT_REQUIRED: "This adapter type requires an HTTPS endpoint URL.",
+      SECRET_REF_REQUIRED:
+        "This adapter type requires a server secret variable name (API key).",
       PROVIDER_NOT_ALLOWED: "This OCR provider is not enabled by the platform.",
       VENDOR_NOT_APPROVED:
         "Documents cannot be sent because the vendor has not been approved.",
