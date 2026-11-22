@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   Building2,
@@ -159,6 +160,7 @@ export function Workspace({
   const [segregationPolicy, setSegregationPolicy] =
     useState<SegregationPolicy>("STRICT_SEPARATION");
   const sessionsPage = usePaged(sessions);
+  const initialTab = useSearchParams().get("tab") ?? undefined;
 
   async function load() {
     const [workspaces, devices] = await Promise.all([
@@ -880,6 +882,8 @@ export function Workspace({
           className="min-w-0 rounded-xl border bg-surface p-4 shadow-xs sm:p-6"
         >
           <Tabs
+            key={initialTab}
+            defaultTab={initialTab}
             label={t.account}
             items={[
               { id: "profile", label: st.tabs.profile, content: profileTab },

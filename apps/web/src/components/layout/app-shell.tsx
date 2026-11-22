@@ -9,6 +9,7 @@ import {
   ChevronsRight,
   LayoutGrid,
   LogOut,
+  Sparkles,
   Menu,
   UserRound,
   X,
@@ -29,6 +30,8 @@ import { cn } from "@/lib/utils";
 import { LocaleSwitch, ThemeToggle } from "./preferences";
 import { activeMenu, appModules, type ModuleDef } from "./modules";
 import { BrandLogo } from "@/components/ui/brand";
+import { OPEN_TOUR_EVENT, OnboardingTour } from "./onboarding-tour";
+import { onboardingMessages } from "@/i18n/onboarding";
 
 export type ShellUser = { name: string; email: string; superadmin: boolean };
 type Workspaces = {
@@ -397,6 +400,15 @@ export function AppShell({
                   {v.profile}
                 </MenuItem>
                 <MenuItem
+                  icon={<Sparkles />}
+                  onSelect={() => {
+                    close();
+                    window.dispatchEvent(new Event(OPEN_TOUR_EVENT));
+                  }}
+                >
+                  {onboardingMessages[locale].menuItem}
+                </MenuItem>
+                <MenuItem
                   icon={<LogOut />}
                   disabled={busy}
                   onSelect={() => {
@@ -513,6 +525,7 @@ export function AppShell({
           </div>
         </div>
       )}
+      <OnboardingTour locale={locale} email={user.email} />
     </ToastProvider>
   );
 }
