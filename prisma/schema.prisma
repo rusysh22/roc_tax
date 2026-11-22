@@ -103,6 +103,9 @@ model Organization {
   memberships         Membership[]
   invitations         Invitation[]
   auditEvents         WorkspaceAudit[]
+  offer               OrganizationOffer?
+  terminations        WorkspaceTermination[]
+  invoices            BillingInvoice[]
   companies           Company[]
   counterparties      Counterparty[]
   transactions        Transaction[]
@@ -384,12 +387,16 @@ model SourceDocument {
   scanStatus     String         @default("NOT_SCANNED")
   uploadedBy     String
   createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  /// Customer-initiated deletion: the file is removed from storage and only
+  /// this tombstone (name, size, SHA-256) remains for the audit trail.
+  deletedAt      DateTime?      @db.Timestamptz(3)
+  deletedBy      String?
   transaction    Transaction    @relation(fields: [transactionId, organizationId], references: [id, organizationId], onDelete: Cascade)
   ocrJobs        OcrJob[]
   ocrCandidates  OcrCandidate[]
 
   @@unique([id, organizationId])
-  @@unique([transactionId, sha256])
+  @@index([transactionId, sha256])
   @@index([organizationId])
 }
 
@@ -465,6 +472,12 @@ enum OcrAdapterKey {
   NONE
   SYNTHETIC_TEST
   EXTERNAL_NOT_CONFIGURED
+  ANTHROPIC_CLAUDE
+  AWS_BEDROCK_CLAUDE
+  AWS_TEXTRACT
+  GOOGLE_DOCUMENT_AI
+  OPENAI_COMPATIBLE
+  GENERIC_HTTP
 }
 
 enum OcrJobStatus {
@@ -963,4 +976,141 @@ model SupportAccessAudit {
 
   @@index([organizationId, accessedAt])
   @@index([actorId, accessedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Sales-led onboarding and per-invoice pricing.
+// Prices come from the signed offer letter entered by a Superadmin; nothing is
+// hard-coded. Usage is metered from durable EntitledUsage receipts.
+// ---------------------------------------------------------------------------
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  REJECTED
+}
+
+enum PricingModel {
+  SUBSCRIPTION
+  PER_INVOICE
+}
+
+model SalesLead {
+  id                       String     @id @default(cuid())
+  companyName              String
+  picName                  String
+  email                    String
+  phone                    String
+  npwpCipher               String?
+  npwpHint                 String?    @db.VarChar(4)
+  estimatedMonthlyInvoices Int?
+  message                  String     @default("")
+  locale                   String     @db.VarChar(2)
+  status                   LeadStatus @default(NEW)
+  notes                    String     @default("")
+  requesterHash            String     @db.Char(64)
+  updatedBy                String?
+  createdAt                DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime   @updatedAt @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@index([requesterHash, createdAt])
+}
+
+model OrganizationOffer {
+  organizationId     String       @id
+  pricingModel       PricingModel @default(SUBSCRIPTION)
+  pricePerInvoiceIdr Decimal      @default(0) @db.Decimal(20, 2)
+  minimumMonthlyIdr  Decimal      @default(0) @db.Decimal(20, 2)
+  /// VAT rate charged on invoices, from the offer letter (0 = none).
+  vatRatePercent     Decimal      @default(0) @db.Decimal(5, 2)
+  paymentTermDays    Int          @default(14)
+  /// Optional safety cap on metered invoices per month (null = no cap).
+  monthlyInvoiceCap  Int?
+  offerReference     String
+  effectiveFrom      DateTime     @db.Date
+  effectiveTo        DateTime?    @db.Date
+  active             Boolean      @default(true)
+  notes              String       @default("")
+  updatedBy          String
+  createdAt          DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime     @updatedAt @db.Timestamptz(3)
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Subscription termination & automatic data deletion, and customer invoices.
+// ---------------------------------------------------------------------------
+
+enum TerminationStatus {
+  REQUESTED
+  CANCELLED
+  TERMINATED
+  PURGED
+}
+
+model WorkspaceTermination {
+  id               String            @id @default(cuid())
+  organizationId   String
+  status           TerminationStatus @default(REQUESTED)
+  reason           String            @default("")
+  requestedBy      String
+  requestedAt      DateTime          @db.Timestamptz(3)
+  /// When access becomes read-only (end of the notice period).
+  effectiveAt      DateTime          @db.Timestamptz(3)
+  terminatedAt     DateTime?         @db.Timestamptz(3)
+  /// When stored documents are deleted (null = retention not configured).
+  purgeAfter       DateTime?         @db.Timestamptz(3)
+  purgedAt         DateTime?         @db.Timestamptz(3)
+  purgedDocuments  Int               @default(0)
+  purgedExports    Int               @default(0)
+  cancelledBy      String?
+  cancelledAt      DateTime?         @db.Timestamptz(3)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@index([status, effectiveAt])
+  @@index([status, purgeAfter])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+}
+
+model BillingInvoice {
+  id                 String        @id @default(cuid())
+  organizationId     String
+  number             String        @unique
+  period             String        @db.Char(7)
+  status             InvoiceStatus @default(DRAFT)
+  invoiceCount       Int
+  pricePerInvoiceIdr Decimal       @db.Decimal(20, 2)
+  minimumMonthlyIdr  Decimal       @db.Decimal(20, 2)
+  subtotalIdr        Decimal       @db.Decimal(20, 2)
+  vatRatePercent     Decimal       @db.Decimal(5, 2)
+  vatIdr             Decimal       @db.Decimal(20, 2)
+  totalIdr           Decimal       @db.Decimal(20, 2)
+  offerReference     String
+  sellerSnapshot     Json
+  buyerSnapshot      Json
+  paymentLink        String?
+  issuedAt           DateTime?     @db.Timestamptz(3)
+  dueAt              DateTime?     @db.Timestamptz(3)
+  paidAt             DateTime?     @db.Timestamptz(3)
+  paymentMethod      String?
+  paymentReference   String?
+  voidReason         String?
+  createdBy          String
+  updatedBy          String?
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(3)
+  organization       Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, period])
+  @@index([status, dueAt])
 }

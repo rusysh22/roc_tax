@@ -25,6 +25,7 @@ import {
   paidEntitlementKeys,
 } from "../../apps/web/src/lib/billing/schemas";
 import { xmlTemplateStatuses } from "../../apps/web/src/lib/export/bppu-spec";
+import { readinessGates } from "../../apps/web/src/lib/export/family-readiness";
 import {
   permissionList,
   rolePermissions,
@@ -102,6 +103,13 @@ describe("UI standards — code registry", () => {
     ["role", roles],
     ["permission", permissionList],
     ["entitlement", paidEntitlementKeys],
+    ["readinessGate", readinessGates],
+    ["invoiceStatus", ["DRAFT", "ISSUED", "OVERDUE", "PAID", "VOID"]],
+    ["terminationStatus", ["REQUESTED", "CANCELLED", "TERMINATED", "PURGED"]],
+    [
+      "retentionPolicy",
+      ["ZERO_RETENTION_REQUIRED", "EPHEMERAL_PROCESSING_ONLY", "LOCAL_ONLY"],
+    ],
   ];
 
   it.each(coverage)("%s covers every enum value", (domain, values) => {

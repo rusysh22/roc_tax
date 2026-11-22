@@ -3,6 +3,7 @@ import type { Locale } from "@/i18n/messages";
 import { messages } from "@/i18n/messages";
 import { accountMessages } from "@/i18n/account";
 import { siteMessages } from "@/i18n/site";
+import { salesMessages } from "@/i18n/sales";
 import { LocaleSwitch, ThemeToggle } from "./preferences";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/ui/brand";
@@ -50,6 +51,11 @@ export function PublicShell({
           <div className="flex items-center gap-2">
             <LocaleSwitch locale={locale} className="hover:bg-muted" />
             <ThemeToggle locale={locale} className="hover:bg-muted" />
+            <Button asChild variant="outline" className="hidden md:inline-flex">
+              <Link href={`/${locale}/register`}>
+                {salesMessages[locale].contactSales}
+              </Link>
+            </Button>
             <Button asChild className="hidden sm:inline-flex">
               <Link href={`/${locale}/auth/sign-in`}>
                 {accountMessages[locale].signIn}
@@ -70,6 +76,12 @@ export function PublicShell({
                   {link.label}
                 </Link>
               ))}
+              <Link
+                className="rounded-md px-3 py-3 hover:bg-muted"
+                href={`/${locale}/register`}
+              >
+                {salesMessages[locale].contactSales}
+              </Link>
               <Link
                 className="rounded-md px-3 py-3 font-medium hover:bg-muted"
                 href={`/${locale}/auth/sign-in`}

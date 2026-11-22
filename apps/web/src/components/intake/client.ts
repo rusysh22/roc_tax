@@ -46,6 +46,14 @@ export async function apiPost<T>(path: string, payload: unknown): Promise<T> {
   return body as T;
 }
 
+export async function apiDelete<T>(path: string): Promise<T> {
+  const response = await fetch(path, { method: "DELETE" });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok)
+    throw new ApiFailure(body.code ?? "FAILED", body.issues ?? []);
+  return body as T;
+}
+
 export async function apiUpload<T>(path: string, file: File): Promise<T> {
   const response = await fetch(path, {
     method: "POST",

@@ -12,6 +12,8 @@ import { normalizeInvoiceNumber } from "../../lib/intake/identity";
 import {
   isSafeHttpsEndpointUrl,
   isValidSecretRefName,
+  externalOcrAdapters,
+  ocrAdapterRequirements,
   ocrCommandSchema,
   orgOcrSettingsSchema,
   providerConfigCommandSchema,
@@ -23,6 +25,7 @@ import { jakartaDate } from "../trial/state";
 import { AccessError } from "../workspaces/policy";
 import { requireActor, requireMembership } from "../workspaces/service";
 import type { DocumentStorage } from "../intake/storage";
+import { assertWorkspaceWritable } from "../lifecycle/state";
 import {
   OcrAdapterError,
   normalizeCandidateFields,
@@ -37,6 +40,8 @@ export class OcrError extends Error {
     public code:
       | "INVALID_ENDPOINT_URL"
       | "INVALID_SECRET_REF"
+      | "ENDPOINT_REQUIRED"
+      | "SECRET_REF_REQUIRED"
       | "PROVIDER_NOT_ALLOWED"
       | "VENDOR_NOT_APPROVED"
       | "OCR_NOT_CONFIGURED"
@@ -186,6 +191,17 @@ export function ocrService(
     if (command.secretRef && !isValidSecretRefName(command.secretRef)) {
       throw new OcrError("INVALID_SECRET_REF");
     }
+    const needs = ocrAdapterRequirements[command.adapterKey];
+    if (needs.endpoint && !command.endpointUrl)
+      throw new OcrError("ENDPOINT_REQUIRED");
+    if (needs.secret === "required" && !command.secretRef)
+      throw new OcrError("SECRET_REF_REQUIRED");
+    if (
+      externalOcrAdapters.includes(command.adapterKey) &&
+      command.enabled &&
+      !command.vendorApproved
+    )
+      throw new OcrError("VENDOR_NOT_APPROVED");
     return db.$transaction(async (tx) => {
       const session = await requireSuperadmin(tx, sessionId);
       const saved = await tx.ocrProviderConfig.upsert({
@@ -491,6 +507,7 @@ export function ocrService(
       async (tx, { session, membership }) => {
         const organizationId = membership.organizationId;
         const now = await databaseNow(tx);
+        await assertWorkspaceWritable(tx, organizationId, now);
         const transaction = await tx.transaction.findFirst({
           where: { id: transactionId, organizationId },
         });
@@ -507,7 +524,12 @@ export function ocrService(
           throw new OcrError("INVALID_STATE");
         }
         const doc = await tx.sourceDocument.findFirst({
-          where: { id: documentId, transactionId, organizationId },
+          where: {
+            id: documentId,
+            transactionId,
+            organizationId,
+            deletedAt: null,
+          },
         });
         if (!doc) throw new OcrError("NOT_FOUND");
 
@@ -670,6 +692,7 @@ export function ocrService(
           maxPages,
           timeoutMs,
           secret,
+          endpointUrl: claimed.provider?.endpointUrl ?? null,
         }),
         new Promise<never>((_, reject) => {
           timer = setTimeout(

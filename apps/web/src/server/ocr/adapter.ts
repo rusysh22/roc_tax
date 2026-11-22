@@ -9,6 +9,14 @@ import {
 import { amountPattern, quantityPattern } from "../../lib/intake/decimal";
 import { validateIdentity } from "../../lib/intake/identity";
 import { inspectDocument } from "../intake/documents";
+import {
+  anthropicClaudeAdapter,
+  awsTextractAdapter,
+  bedrockClaudeAdapter,
+  genericHttpAdapter,
+  googleDocumentAiAdapter,
+  openAiCompatibleAdapter,
+} from "./providers";
 
 export type OcrExtractionRequest = {
   bytes: Uint8Array;
@@ -19,6 +27,8 @@ export type OcrExtractionRequest = {
   maxPages: number;
   timeoutMs: number;
   secret: string | null;
+  /** Vendor endpoint (Document AI processor, OpenAI-compatible or generic HTTP). */
+  endpointUrl?: string | null;
 };
 
 export type OcrExtractionResponse = {
@@ -63,8 +73,9 @@ export class OcrAdapterError extends Error {
       | "OCR_PAGE_LIMIT"
       | "OCR_SECRET_MISSING",
     public retryable: boolean,
+    options?: { cause?: unknown },
   ) {
-    super(code);
+    super(code, options);
   }
 }
 
@@ -384,5 +395,17 @@ export function resolveOcrAdapter(
       return syntheticTestAdapter;
     case "EXTERNAL_NOT_CONFIGURED":
       return externalNotConfiguredAdapter;
+    case "ANTHROPIC_CLAUDE":
+      return anthropicClaudeAdapter;
+    case "AWS_BEDROCK_CLAUDE":
+      return bedrockClaudeAdapter;
+    case "AWS_TEXTRACT":
+      return awsTextractAdapter;
+    case "GOOGLE_DOCUMENT_AI":
+      return googleDocumentAiAdapter;
+    case "OPENAI_COMPATIBLE":
+      return openAiCompatibleAdapter;
+    case "GENERIC_HTTP":
+      return genericHttpAdapter;
   }
 }

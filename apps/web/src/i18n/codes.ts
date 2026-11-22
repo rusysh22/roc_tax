@@ -693,6 +693,66 @@ export const codeRegistry = {
         "External provider not configured; requests are refused.",
       ],
     ),
+    ANTHROPIC_CLAUDE: c(
+      "violet",
+      [
+        "Claude (Anthropic)",
+        "Model AI Claude membaca PDF/gambar faktur lewat API Anthropic.",
+      ],
+      [
+        "Claude (Anthropic)",
+        "Claude reads invoice PDFs/images through the Anthropic API.",
+      ],
+    ),
+    AWS_BEDROCK_CLAUDE: c(
+      "violet",
+      [
+        "Claude via AWS Bedrock",
+        "Claude lewat akun AWS sendiri; region bisa dipilih (misalnya Asia/Jakarta bila tersedia).",
+      ],
+      [
+        "Claude via AWS Bedrock",
+        "Claude through your own AWS account; region is configurable (e.g. Asia/Jakarta when available).",
+      ],
+    ),
+    AWS_TEXTRACT: c(
+      "blue",
+      [
+        "AWS Textract",
+        "Layanan OCR faktur AWS (Analyze Expense) di akun AWS sendiri.",
+      ],
+      [
+        "AWS Textract",
+        "AWS invoice OCR (Analyze Expense) in your own AWS account.",
+      ],
+    ),
+    GOOGLE_DOCUMENT_AI: c(
+      "blue",
+      ["Google Document AI", "Processor Invoice Parser Google Cloud."],
+      ["Google Document AI", "Google Cloud Invoice Parser processor."],
+    ),
+    OPENAI_COMPATIBLE: c(
+      "blue",
+      [
+        "Endpoint kompatibel OpenAI",
+        "Model AI lain lewat endpoint chat-completions yang kompatibel (gambar saja).",
+      ],
+      [
+        "OpenAI-compatible endpoint",
+        "Other AI models through a compatible chat-completions endpoint (images only).",
+      ],
+    ),
+    GENERIC_HTTP: c(
+      "gray",
+      [
+        "HTTP generik",
+        "Layanan OCR milik sendiri/vendor lokal yang mengikuti kontrak JSON SerenTax.",
+      ],
+      [
+        "Generic HTTP",
+        "Your own or a regional OCR service following the SerenTax JSON contract.",
+      ],
+    ),
   },
   ocrJobStatus: {
     QUEUED: c(
@@ -820,6 +880,86 @@ export const codeRegistry = {
       "gray",
       ["Dokumen dilampirkan", "Berkas sumber dilampirkan."],
       ["Document attached", "A source file was attached."],
+    ),
+    DOCUMENT_DELETED: c(
+      "red",
+      [
+        "Dokumen dihapus",
+        "Berkas sumber dihapus permanen oleh pelanggan; hanya catatan audit yang tersisa.",
+      ],
+      [
+        "Document deleted",
+        "The source file was permanently deleted by the customer; only the audit record remains.",
+      ],
+    ),
+    OFFER_UPDATED: c(
+      "violet",
+      [
+        "Penawaran diperbarui",
+        "Superadmin mengubah penawaran harga ruang kerja.",
+      ],
+      ["Offer updated", "A superadmin changed the workspace price offer."],
+    ),
+    TERMINATION_REQUESTED: c(
+      "amber",
+      [
+        "Berhenti berlangganan diajukan",
+        "Pemilik mengajukan berhenti berlangganan.",
+      ],
+      [
+        "Cancellation requested",
+        "The Owner requested to cancel the subscription.",
+      ],
+    ),
+    TERMINATION_CANCELLED: c(
+      "gray",
+      [
+        "Pengajuan berhenti dibatalkan",
+        "Pemilik membatalkan pengajuan berhenti berlangganan.",
+      ],
+      [
+        "Cancellation withdrawn",
+        "The Owner withdrew the cancellation request.",
+      ],
+    ),
+    WORKSPACE_TERMINATED: c(
+      "red",
+      ["Langganan berakhir", "Ruang kerja menjadi baca-saja."],
+      ["Subscription ended", "The workspace became read-only."],
+    ),
+    DATA_PURGED: c(
+      "red",
+      [
+        "Data dihapus otomatis",
+        "Dokumen dan berkas XML dihapus setelah masa retensi.",
+      ],
+      [
+        "Data deleted automatically",
+        "Documents and XML files were deleted after the retention period.",
+      ],
+    ),
+    INVOICE_ISSUED: c(
+      "blue",
+      ["Invoice diterbitkan", "Invoice bulanan diterbitkan."],
+      ["Invoice issued", "A monthly invoice was issued."],
+    ),
+    INVOICE_PAID: c(
+      "green",
+      ["Invoice lunas", "Pembayaran invoice dicatat."],
+      ["Invoice paid", "An invoice payment was recorded."],
+    ),
+    INVOICE_VOIDED: c(
+      "gray",
+      ["Invoice dibatalkan", "Invoice dibatalkan."],
+      ["Invoice voided", "An invoice was voided."],
+    ),
+    DATA_EXPORTED: c(
+      "violet",
+      ["Data diekspor", "Salinan data ruang kerja diunduh oleh Pemilik/Admin."],
+      [
+        "Data exported",
+        "A copy of the workspace data was downloaded by an Owner/Admin.",
+      ],
     ),
     DOCUMENT_VIEWED: c(
       "gray",
@@ -974,6 +1114,210 @@ export const codeRegistry = {
       "gray",
       ["Transaksi langganan", "Dibuat dengan kuota langganan."],
       ["Subscription transaction", "Created under the subscription quota."],
+    ),
+  },
+  readinessGate: {
+    OFFICIAL_TEMPLATE: c(
+      "blue",
+      [
+        "Templat resmi",
+        "Templat XML resmi DJP terdaftar dan berstatus terverifikasi.",
+      ],
+      [
+        "Official template",
+        "An official DJP XML template is registered and verified.",
+      ],
+    ),
+    SOURCE_HASH: c(
+      "blue",
+      [
+        "Sidik jari sumber",
+        "Hash SHA-256 berkas sumber resmi tercatat untuk audit.",
+      ],
+      [
+        "Source fingerprint",
+        "The SHA-256 hash of the official source file is recorded for audit.",
+      ],
+    ),
+    XSD_ORDER: c(
+      "blue",
+      ["Struktur XSD", "Urutan elemen diturunkan dari skema XSD resmi."],
+      [
+        "XSD structure",
+        "Element order is derived from the official XSD schema.",
+      ],
+    ),
+    SERIALIZER: c(
+      "violet",
+      [
+        "Generator XML",
+        "Kode pembuat XML untuk jenis pajak ini sudah dibangun dari spesifikasi resmi.",
+      ],
+      [
+        "XML generator",
+        "The XML generator for this family is built from the official specification.",
+      ],
+    ),
+    FIXTURE_TESTS: c(
+      "green",
+      [
+        "Uji contoh resmi",
+        "Hasil XML dibandingkan dengan contoh resmi DJP dan lolos.",
+      ],
+      [
+        "Official sample test",
+        "Generated XML was compared with the official DJP sample and passed.",
+      ],
+    ),
+    SME_RULES: c(
+      "green",
+      [
+        "Aturan ahli pajak",
+        "Minimal satu aturan pajak untuk jenis ini disetujui ahli pajak.",
+      ],
+      [
+        "Tax-expert rules",
+        "At least one tax rule for this family is approved by a tax expert.",
+      ],
+    ),
+  },
+  retentionPolicy: {
+    ZERO_RETENTION_REQUIRED: c(
+      "green",
+      [
+        "Tanpa penyimpanan di vendor",
+        "Vendor wajib tidak menyimpan dokumen maupun hasilnya setelah diproses.",
+      ],
+      [
+        "Zero retention at vendor",
+        "The vendor must not keep documents or results after processing.",
+      ],
+    ),
+    EPHEMERAL_PROCESSING_ONLY: c(
+      "blue",
+      [
+        "Diproses sementara",
+        "Vendor hanya menyimpan data sementara selama pemrosesan.",
+      ],
+      [
+        "Ephemeral processing",
+        "The vendor keeps data only temporarily while processing.",
+      ],
+    ),
+    LOCAL_ONLY: c(
+      "gray",
+      ["Lokal saja", "Dokumen tidak keluar dari server SerenTax."],
+      ["Local only", "Documents never leave the SerenTax server."],
+    ),
+  },
+  invoiceStatus: {
+    DRAFT: c(
+      "gray",
+      ["Draf", "Belum diterbitkan; hanya terlihat oleh superadmin."],
+      ["Draft", "Not issued yet; visible to superadmins only."],
+    ),
+    ISSUED: c(
+      "blue",
+      ["Belum dibayar", "Invoice diterbitkan dan menunggu pembayaran."],
+      ["Unpaid", "Issued and awaiting payment."],
+    ),
+    OVERDUE: c(
+      "red",
+      ["Lewat jatuh tempo", "Belum dibayar setelah tanggal jatuh tempo."],
+      ["Overdue", "Not paid after the due date."],
+    ),
+    PAID: c(
+      "green",
+      ["Lunas", "Pembayaran sudah dicatat."],
+      ["Paid", "Payment has been recorded."],
+    ),
+    VOID: c(
+      "gray",
+      ["Dibatalkan", "Invoice dibatalkan dan tidak perlu dibayar."],
+      ["Void", "Cancelled; no payment needed."],
+    ),
+  },
+  terminationStatus: {
+    REQUESTED: c(
+      "amber",
+      [
+        "Akan berakhir",
+        "Berhenti berlangganan diajukan; layanan tetap aktif sampai tanggal efektif.",
+      ],
+      [
+        "Ending",
+        "Cancellation requested; the service stays active until the effective date.",
+      ],
+    ),
+    CANCELLED: c(
+      "gray",
+      ["Dibatalkan", "Pengajuan berhenti berlangganan dibatalkan."],
+      ["Withdrawn", "The cancellation request was withdrawn."],
+    ),
+    TERMINATED: c(
+      "red",
+      [
+        "Berakhir",
+        "Langganan berakhir; data hanya bisa dilihat dan diekspor sampai dihapus.",
+      ],
+      [
+        "Ended",
+        "Subscription ended; data can be viewed and exported until deletion.",
+      ],
+    ),
+    PURGED: c(
+      "gray",
+      [
+        "Dokumen dihapus",
+        "Masa retensi selesai; dokumen dan berkas XML telah dihapus.",
+      ],
+      [
+        "Documents deleted",
+        "Retention ended; documents and XML files were deleted.",
+      ],
+    ),
+  },
+  leadStatus: {
+    NEW: c(
+      "blue",
+      ["Baru", "Pendaftaran baru, belum dihubungi."],
+      ["New", "New registration, not contacted yet."],
+    ),
+    CONTACTED: c(
+      "amber",
+      ["Sudah dihubungi", "Tim sales sudah menghubungi PIC."],
+      ["Contacted", "Sales has contacted the person in charge."],
+    ),
+    CONVERTED: c(
+      "green",
+      [
+        "Menjadi pelanggan",
+        "Ruang kerja sudah dibuat dan penawaran disetujui.",
+      ],
+      ["Converted", "A workspace was created and the offer accepted."],
+    ),
+    REJECTED: c(
+      "gray",
+      ["Tidak dilanjutkan", "Prospek tidak berlanjut."],
+      ["Not pursued", "The lead did not proceed."],
+    ),
+  },
+  pricingModel: {
+    SUBSCRIPTION: c(
+      "blue",
+      ["Langganan", "Kuota bulanan dari paket langganan (lisensi)."],
+      ["Subscription", "Monthly quota from a subscription plan (license)."],
+    ),
+    PER_INVOICE: c(
+      "violet",
+      [
+        "Per faktur",
+        "Ditagih per faktur yang diproses setiap bulan sesuai surat penawaran.",
+      ],
+      [
+        "Per invoice",
+        "Charged per invoice processed each month under the offer letter.",
+      ],
     ),
   },
   entitlement: {

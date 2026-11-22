@@ -26,6 +26,7 @@ import {
   verifyBerlangganWebhookHmac,
 } from "./crypto";
 import { resolveWorkspaceEntitlements } from "./entitlements";
+import { perInvoiceSummary } from "../sales/service";
 
 type Tx = Prisma.TransactionClient;
 
@@ -304,18 +305,21 @@ export function billingService(
         const organizationId = membership.organizationId;
         const now = await databaseNow(tx);
 
-        const [config, license, trial, resolved] = await Promise.all([
-          tx.billingConfig.findUnique({ where: { id: "default" } }),
-          tx.organizationLicense.findUnique({ where: { organizationId } }),
-          tx.trialAccount.findUnique({
-            where: { userId: session.userId },
-            include: { _count: { select: { usage: true } } },
-          }),
-          resolveWorkspaceEntitlements(tx, organizationId, now),
-        ]);
+        const [config, license, trial, resolved, perInvoice] =
+          await Promise.all([
+            tx.billingConfig.findUnique({ where: { id: "default" } }),
+            tx.organizationLicense.findUnique({ where: { organizationId } }),
+            tx.trialAccount.findUnique({
+              where: { userId: session.userId },
+              include: { _count: { select: { usage: true } } },
+            }),
+            resolveWorkspaceEntitlements(tx, organizationId, now),
+            perInvoiceSummary(tx, organizationId, now),
+          ]);
 
         return {
           role: membership.role,
+          perInvoice,
           compatibilityGate: {
             adapterMode: config?.adapterMode ?? "NOT_CONFIGURED",
             saasLicensingApproved: config?.saasLicensingApproved ?? false,

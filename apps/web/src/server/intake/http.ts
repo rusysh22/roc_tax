@@ -14,6 +14,9 @@ import { DocumentError } from "./documents";
 import { ImportBatchError } from "./imports";
 import { IntakeError } from "./service";
 import { SpreadsheetError } from "./spreadsheet";
+import { WorkspaceLockedError } from "../lifecycle/state";
+import { LifecycleError } from "../lifecycle/service";
+import { InvoiceError } from "../invoicing/service";
 
 export const jsonResponse = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
@@ -30,6 +33,29 @@ export async function requireSessionId(request: Request, mutate: boolean) {
 }
 
 export function intakeErrorResponse(error: unknown) {
+  if (error instanceof WorkspaceLockedError)
+    return jsonResponse(
+      { code: error.code },
+      error.code === "BILLING_OVERDUE" ? 402 : 403,
+    );
+  if (error instanceof InvoiceError)
+    return jsonResponse(
+      { code: error.code },
+      error.code === "NOT_FOUND"
+        ? 404
+        : error.code === "INVALID_PAYMENT_LINK"
+          ? 400
+          : 409,
+    );
+  if (error instanceof LifecycleError)
+    return jsonResponse(
+      { code: error.code },
+      error.code === "NOT_FOUND"
+        ? 404
+        : error.code === "OWNER_ONLY"
+          ? 403
+          : 409,
+    );
   if (error instanceof BodyTooLarge)
     return jsonResponse({ code: "DOCUMENT_TOO_LARGE" }, 413);
   if (error instanceof InvalidBody || error instanceof ZodError)

@@ -32,6 +32,8 @@ import { comboLabels } from "@/components/views/page-state";
 import type { Column } from "@/components/views/list-view";
 import type { ViewField } from "@/components/views/search";
 import { useResource } from "@/components/views/use-resource";
+import type { FamilyReadiness } from "@/lib/export/family-readiness";
+import { FamilyReadinessPanel } from "./family-readiness-panel";
 import {
   ApiFailure,
   apiGet,
@@ -91,7 +93,9 @@ export function XmlTemplatesList({ locale }: { locale: Locale }) {
   const s = shellMessages[locale];
   const v = viewMessages[locale];
   const { data, reload } = useResource(() =>
-    apiGet<{ templates: TemplateRow[] }>("/api/admin/xml-templates"),
+    apiGet<{ templates: TemplateRow[]; readiness: FamilyReadiness[] }>(
+      "/api/admin/xml-templates",
+    ),
   );
   const isArchived = (r: TemplateRow) => r.status === "RETIRED";
   const archive = useMemo(() => archivedPreset(locale, isArchived), [locale]);
@@ -198,7 +202,14 @@ export function XmlTemplatesList({ locale }: { locale: Locale }) {
       rowLabel={(r) => r.versionTag}
       createHref={`/${locale}/admin/xml-templates/new`}
       emptyIcon={<Workflow />}
-      banner={<Notice>{t.adminIntro}</Notice>}
+      banner={
+        <div className="space-y-3">
+          <Notice>{t.adminIntro}</Notice>
+          {data?.readiness && (
+            <FamilyReadinessPanel locale={locale} readiness={data.readiness} />
+          )}
+        </div>
+      }
       actions={[
         {
           id: "retire",

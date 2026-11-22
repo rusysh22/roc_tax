@@ -13,6 +13,9 @@ import { billingMessages } from "@/i18n/billing";
 import { codeEntry } from "@/i18n/codes";
 import { formatDate } from "@/i18n/format";
 import { siteMessages } from "@/i18n/site";
+import { salesMessages } from "@/i18n/sales";
+import { sumAmounts } from "@/lib/intake/decimal";
+import { codeLabel } from "@/i18n/codes";
 import { viewMessages } from "@/i18n/views";
 import type {
   BerlangganCatalogPlan,
@@ -33,17 +36,31 @@ import { Badge, Notice, Skeleton } from "@/components/ui/status";
 import { Tabs } from "@/components/ui/tabs";
 import { InfoTip } from "@/components/ui/tooltip";
 import { TrialStrip } from "@/components/account/trial-strip";
+import { InvoicesTab } from "./invoices";
 import { Submit } from "@/components/account/forms";
 import {
   ApiFailure,
   apiGet,
   apiPost,
+  formatAmountString,
   formatFailure,
 } from "@/components/intake/client";
 import { cn } from "@/lib/utils";
 
+type PerInvoice = {
+  active: boolean;
+  pricePerInvoiceIdr: string;
+  minimumMonthlyIdr: string;
+  monthlyInvoiceCap: number | null;
+  offerReference: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  months: { month: string; invoices: number; chargeIdr: string }[];
+};
+
 type OrgBillingPayload = {
   role: Role;
+  perInvoice: PerInvoice | null;
   compatibilityGate: {
     adapterMode: BillingAdapterMode;
     saasLicensingApproved: boolean;
@@ -270,9 +287,11 @@ export function OrgBillingView({ locale }: { locale: Locale }) {
   const licenseActive = ["ACTIVE", "GRACE"].includes(summary.licenseStatus);
   const trialActive =
     data.trial !== null && new Date(data.trial.expiresAt) > new Date();
-  const state: State =
-    licenseActive &&
-    (summary.paidAccessEnabled || summary.nonProductionTestActive)
+  const perInvoice = data.perInvoice;
+  const state: State = perInvoice?.active
+    ? "paid"
+    : licenseActive &&
+        (summary.paidAccessEnabled || summary.nonProductionTestActive)
       ? "paid"
       : data.license &&
           !licenseActive &&
@@ -294,9 +313,11 @@ export function OrgBillingView({ locale }: { locale: Locale }) {
   const [stateTitle, stateBody, stateTone] = stateText[state];
   const numberOrNull = (key: string) =>
     typeof ent[key] === "number" ? (ent[key] as number) : null;
-  const planName =
-    gate.catalogPlans.find((plan) => plan.slug === summary.planCode)?.name ??
-    summary.planCode;
+  const planName = perInvoice?.active
+    ? codeLabel(locale, "pricingModel", "PER_INVOICE")
+    : (gate.catalogPlans.find((plan) => plan.slug === summary.planCode)?.name ??
+      summary.planCode);
+  const sales = salesMessages[locale];
   const formatValue = (value: string | number | boolean | null) =>
     value === true
       ? p.yes
@@ -312,31 +333,134 @@ export function OrgBillingView({ locale }: { locale: Locale }) {
     : null;
 
   /* ---------- Overview ---------- */
-  const overviewTab = (
-    <Section title={p.usageTitle} intro={p.usageIntro}>
+  const perInvoiceSection = perInvoice && (
+    <Section title={sales.perInvoiceTitle} intro={sales.perInvoiceIntro}>
+      {!perInvoice.active && (
+        <Notice tone="warning">{sales.offerInactive}</Notice>
+      )}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {(
+        {[
           [
-            ["MONTHLY_TRANSACTIONS", usage.monthTransactionsCount],
-            ["MONTHLY_XML_EXPORTS", usage.monthXmlExportsCount],
-            ["MAX_COMPANIES", usage.companiesCount],
-            ["MAX_MEMBERS", usage.membersCount],
-          ] as const
-        ).map(([key, used]) => {
-          const entry = codeEntry(locale, "entitlement", key);
-          return (
-            <UsageCard
-              key={key}
-              label={entry.label}
-              help={entry.help}
-              used={used}
-              limit={numberOrNull(key)}
-              p={p}
-            />
-          );
-        })}
+            sales.currentCharge,
+            `${formatAmountString(perInvoice.months[0]?.chargeIdr ?? "0.00", locale)}`,
+            true,
+          ],
+          [
+            sales.invoicesProcessed,
+            String(perInvoice.months[0]?.invoices ?? 0),
+            true,
+          ],
+          [
+            sales.pricePerInvoice,
+            `${formatAmountString(perInvoice.pricePerInvoiceIdr, locale)}`,
+            false,
+          ],
+          [
+            sales.minimumMonthly,
+            `${formatAmountString(perInvoice.minimumMonthlyIdr, locale)}`,
+            false,
+          ],
+        ].map(([label, value, strong]) => (
+          <div
+            key={String(label)}
+            className="rounded-lg border bg-surface-2 px-4 py-3"
+          >
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p
+              className={cn(
+                "mt-1 font-mono tabular-nums",
+                strong ? "text-2xl font-bold" : "text-lg font-semibold",
+              )}
+            >
+              {value}
+            </p>
+          </div>
+        ))}
       </div>
+      <div className="overflow-hidden rounded-lg border">
+        <table className="w-full text-sm">
+          <thead className="bg-surface-2 text-xs text-muted-foreground">
+            <tr className="border-b">
+              <th className="px-3 py-2.5 text-left font-semibold">
+                {sales.month}
+              </th>
+              <th className="px-3 py-2.5 text-right font-semibold">
+                {sales.invoicesProcessed}
+              </th>
+              <th className="px-3 py-2.5 text-right font-semibold">
+                {sales.charge}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {perInvoice.months.map((m) => (
+              <tr key={m.month}>
+                <td className="px-3 py-2.5 font-mono">{m.month}</td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {m.invoices}
+                </td>
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                  {formatAmountString(m.chargeIdr, locale)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="bg-surface-2">
+            <tr className="border-t-2 border-border-strong font-bold">
+              <td className="px-3 py-2.5">{sales.total}</td>
+              <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                {perInvoice.months.reduce((sum, m) => sum + m.invoices, 0)}
+              </td>
+              <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                {formatAmountString(
+                  sumAmounts(perInvoice.months.map((m) => m.chargeIdr)) ??
+                    "0.00",
+                  locale,
+                )}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {sales.offerRef}:{" "}
+        <span className="font-medium text-foreground">
+          {perInvoice.offerReference}
+        </span>{" "}
+        · {perInvoice.effectiveFrom}
+        {perInvoice.effectiveTo ? ` – ${perInvoice.effectiveTo}` : ""}
+      </p>
     </Section>
+  );
+
+  const overviewTab = (
+    <div className="space-y-8">
+      {perInvoiceSection}
+      <Section title={p.usageTitle} intro={p.usageIntro}>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {(
+            [
+              ["MONTHLY_TRANSACTIONS", usage.monthTransactionsCount],
+              ["MONTHLY_XML_EXPORTS", usage.monthXmlExportsCount],
+              ["MAX_COMPANIES", usage.companiesCount],
+              ["MAX_MEMBERS", usage.membersCount],
+            ] as const
+          ).map(([key, used]) => {
+            const entry = codeEntry(locale, "entitlement", key);
+            return (
+              <UsageCard
+                key={key}
+                label={entry.label}
+                help={entry.help}
+                used={used}
+                limit={numberOrNull(key)}
+                p={p}
+              />
+            );
+          })}
+        </div>
+      </Section>
+    </div>
   );
 
   /* ---------- Plan & benefits ---------- */
@@ -690,7 +814,8 @@ export function OrgBillingView({ locale }: { locale: Locale }) {
           {p.testModeBody}
         </Notice>
       ) : (
-        !summary.paidAccessEnabled && (
+        !summary.paidAccessEnabled &&
+        !perInvoice?.active && (
           <Notice tone="info" title={p.paidClosedTitle}>
             {p.paidClosedBody}
           </Notice>
@@ -708,6 +833,12 @@ export function OrgBillingView({ locale }: { locale: Locale }) {
             { id: "plan", label: p.tabs.plan, content: planTab },
             { id: "trial", label: p.tabs.trial, content: trialTab },
             { id: "license", label: p.tabs.license, content: licenseTab },
+            {
+              id: "invoices",
+              label: sales.tabInvoices,
+              content: <InvoicesTab locale={locale} />,
+              hidden: !perInvoice,
+            },
           ]}
         />
       </fieldset>

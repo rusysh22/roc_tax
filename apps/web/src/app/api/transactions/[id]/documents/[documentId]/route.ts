@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { getIntake } from "@/server/intake";
-import { intakeErrorResponse, requireSessionId } from "@/server/intake/http";
+import {
+  intakeErrorResponse,
+  jsonResponse,
+  requireSessionId,
+} from "@/server/intake/http";
 export const runtime = "nodejs";
 const idSchema = z.string().min(1).max(100);
 function contentDisposition(inline: boolean, name: string) {
@@ -32,6 +36,25 @@ export async function GET(
           "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
       },
     });
+  } catch (error) {
+    return intakeErrorResponse(error);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string; documentId: string }> },
+) {
+  try {
+    const sessionId = await requireSessionId(request, true);
+    const params = await context.params;
+    return jsonResponse(
+      await getIntake().deleteDocument(
+        sessionId,
+        idSchema.parse(params.id),
+        idSchema.parse(params.documentId),
+      ),
+    );
   } catch (error) {
     return intakeErrorResponse(error);
   }

@@ -5,6 +5,12 @@ export const ocrAdapterKeys = [
   "NONE",
   "SYNTHETIC_TEST",
   "EXTERNAL_NOT_CONFIGURED",
+  "ANTHROPIC_CLAUDE",
+  "AWS_BEDROCK_CLAUDE",
+  "AWS_TEXTRACT",
+  "GOOGLE_DOCUMENT_AI",
+  "OPENAI_COMPATIBLE",
+  "GENERIC_HTTP",
 ] as const;
 export type OcrAdapterKey = (typeof ocrAdapterKeys)[number];
 
@@ -17,6 +23,60 @@ export const ocrJobStatuses = [
   "CANCELLED",
 ] as const;
 export type OcrJobStatus = (typeof ocrJobStatuses)[number];
+
+/** Adapters that call an external vendor (need vendor approval + tenant consent). */
+export const externalOcrAdapters: readonly OcrAdapterKey[] = [
+  "ANTHROPIC_CLAUDE",
+  "AWS_BEDROCK_CLAUDE",
+  "AWS_TEXTRACT",
+  "GOOGLE_DOCUMENT_AI",
+  "OPENAI_COMPATIBLE",
+  "GENERIC_HTTP",
+];
+
+/** Per-adapter configuration requirements (validated on save, shown in admin). */
+export const ocrAdapterRequirements: Record<
+  OcrAdapterKey,
+  {
+    endpoint: boolean;
+    secret: "required" | "optional" | "none";
+    defaultModel: string;
+  }
+> = {
+  NONE: { endpoint: false, secret: "none", defaultModel: "none" },
+  SYNTHETIC_TEST: {
+    endpoint: false,
+    secret: "none",
+    defaultModel: "synthetic-test",
+  },
+  EXTERNAL_NOT_CONFIGURED: {
+    endpoint: false,
+    secret: "optional",
+    defaultModel: "unconfigured",
+  },
+  ANTHROPIC_CLAUDE: {
+    endpoint: false,
+    secret: "required",
+    defaultModel: "claude-opus-5-5",
+  },
+  AWS_BEDROCK_CLAUDE: {
+    endpoint: false,
+    secret: "optional",
+    defaultModel: "anthropic.claude-opus-5-5",
+  },
+  AWS_TEXTRACT: {
+    endpoint: false,
+    secret: "optional",
+    defaultModel: "analyze-expense",
+  },
+  GOOGLE_DOCUMENT_AI: {
+    endpoint: true,
+    secret: "required",
+    defaultModel: "invoice-parser",
+  },
+  OPENAI_COMPATIBLE: { endpoint: true, secret: "required", defaultModel: "" },
+  GENERIC_HTTP: { endpoint: true, secret: "required", defaultModel: "generic" },
+};
 
 export const LOW_CONFIDENCE_THRESHOLD = 0.85;
 

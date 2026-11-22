@@ -116,6 +116,67 @@ export const accountMessages = {
       status: "Status",
       actions: "Tindakan",
       changeRoleConfirm: "Ubah peran anggota ini?",
+      privacy: {
+        tab: "Data & privasi",
+        commitmentTitle: "Komitmen penggunaan data",
+        commitment1:
+          "Data Anda (transaksi, faktur, NPWP/NIK) hanya diproses untuk menjalankan layanan bagi ruang kerja ini dan tidak dijual. Tim dukungan hanya dapat melihat diagnostik bila Pemilik/Admin memberi izin sementara yang tercatat.",
+        commitment2:
+          "SerenTax tidak memakai data Anda untuk melatih atau mengembangkan model AI. Vendor AI/OCR hanya disetujui platform bila ketentuannya melarang pemakaian data pelanggan untuk pelatihan model.",
+        commitment3:
+          "Dokumen hanya dikirim ke vendor AI/OCR yang disetujui platform dan setelah Pemilik/Admin menyetujui pemrosesan AI; vendor dipakai hanya untuk membaca dan mengklasifikasi isi dokumen. Lokasi pemrosesan vendor ditampilkan di daftar subprocessor.",
+        commitment4:
+          "NPWP/NIK disimpan terenkripsi, dan akses dokumen, ekspor data, unduhan XML, serta penghapusan dicatat di log audit ruang kerja.",
+        documentsTitle: "Dokumen tersimpan",
+        documentsIntro:
+          "Anda dapat menghapus dokumen kapan saja dari tab Dokumen di setiap transaksi. Berkas dihapus permanen; hanya catatan audit yang tersisa.",
+        stored: "Dokumen tersimpan",
+        storedSize: "Ukuran total",
+        deleted: "Dokumen dihapus",
+        retentionTitle: "Retensi & lokasi data",
+        dataLocation: "Lokasi penyimpanan data",
+        retentionAfter: "Penghapusan setelah langganan berakhir",
+        exportAfter: "Pengiriman salinan data setelah berhenti",
+        days: "{n} hari",
+        notConfigured: "Belum ditetapkan oleh penyedia layanan",
+        retentionNote:
+          "Selama langganan aktif, dokumen tidak kami hapus kecuali Anda menghapusnya sendiri atau diwajibkan hukum. Kewajiban menyimpan pembukuan dan dokumen pajak (umumnya 10 tahun menurut UU KUP) tetap menjadi tanggung jawab Anda; simpan salinan Anda sendiri.",
+        subprocessorsTitle: "Subprocessor (pihak pemroses data)",
+        subprocessorsIntro:
+          "Pihak ketiga yang memproses data ruang kerja ini untuk menjalankan layanan.",
+        subprocessorName: "Nama",
+        subprocessorPurpose: "Kegunaan",
+        subprocessorLocation: "Lokasi",
+        sourcePlatform: "Infrastruktur platform",
+        sourceOcr: "OCR pilihan ruang kerja",
+        noSubprocessors:
+          "Belum ada daftar subprocessor yang ditetapkan penyedia layanan.",
+        exportTitle: "Ekspor data ruang kerja",
+        exportIntro:
+          "Unduh salinan lengkap data ruang kerja (perusahaan, lawan transaksi, transaksi, snapshot pajak, ekspor XML, impor, log audit) dalam format JSON. Berkas dokumen diunduh per transaksi. Unduhan ini tercatat di log audit.",
+        exportButton: "Unduh data (JSON)",
+        exportOwnerOnly:
+          "Hanya Pemilik atau Admin yang dapat mengekspor data ruang kerja.",
+        summaryNote:
+          "Ringkasan ini membantu Anda memahami pengelolaan data dan tidak menggantikan Syarat Penggunaan serta Kebijakan Privasi.",
+        terminationTitle: "Berhenti berlangganan",
+        terminationIntro:
+          "Setelah masa pemberitahuan {notice} hari, ruang kerja menjadi baca-saja: data masih bisa dilihat dan diekspor, tetapi tidak bisa menambah data baru. {retention}",
+        retentionWithDays:
+          "Dokumen dan berkas XML dihapus otomatis {days} hari setelah langganan berakhir.",
+        retentionNone:
+          "Penghapusan otomatis belum dijadwalkan oleh penyedia layanan.",
+        terminationRequest: "Ajukan berhenti berlangganan",
+        terminationConfirmTitle: "Ajukan berhenti berlangganan?",
+        terminationConfirmBody:
+          "Layanan tetap aktif sampai tanggal efektif dan Anda dapat membatalkan pengajuan sebelum tanggal itu. Unduh salinan data dan dokumen Anda sebelum dihapus, karena kewajiban penyimpanan dokumen pajak tetap menjadi tanggung jawab Anda.",
+        terminationCancel: "Batalkan pengajuan",
+        terminationOwnerOnly:
+          "Hanya Pemilik ruang kerja yang dapat mengajukan berhenti berlangganan.",
+        effectiveOn: "Berlaku mulai",
+        purgeOn: "Dokumen dihapus pada",
+        purgedOn: "Dihapus pada",
+      },
     },
   },
   en: {
@@ -232,6 +293,66 @@ export const accountMessages = {
       status: "Status",
       actions: "Actions",
       changeRoleConfirm: "Change this member's role?",
+      privacy: {
+        tab: "Data & privacy",
+        commitmentTitle: "How we use your data",
+        commitment1:
+          "Your data (transactions, invoices, tax IDs) is processed only to run the service for this workspace and is never sold. Support can view diagnostics only when an Owner/Admin grants recorded, time-limited access.",
+        commitment2:
+          "SerenTax does not use your data to train or develop AI models. An AI/OCR vendor is approved by the platform only if its terms prohibit using customer data to train models.",
+        commitment3:
+          "Documents are sent only to platform-approved AI/OCR vendors, and only after an Owner/Admin consents to AI processing; vendors are used only to read and classify document contents. The vendor's processing location is shown in the sub-processor list.",
+        commitment4:
+          "Tax IDs are stored encrypted, and document access, data exports, XML downloads and deletions are recorded in the workspace audit log.",
+        documentsTitle: "Stored documents",
+        documentsIntro:
+          "You can delete documents at any time from the Documents tab of each transaction. Files are deleted permanently; only an audit record remains.",
+        stored: "Stored documents",
+        storedSize: "Total size",
+        deleted: "Deleted documents",
+        retentionTitle: "Retention & data location",
+        dataLocation: "Data storage location",
+        retentionAfter: "Deletion after the subscription ends",
+        exportAfter: "Data copy delivery after cancellation",
+        days: "{n} days",
+        notConfigured: "Not yet set by the service provider",
+        retentionNote:
+          "While the subscription is active we do not delete documents unless you delete them yourself or the law requires it. Keeping your books and tax documents (generally 10 years under Indonesia's tax procedures law) remains your responsibility; keep your own copies.",
+        subprocessorsTitle: "Sub-processors",
+        subprocessorsIntro:
+          "Third parties that process this workspace's data to run the service.",
+        subprocessorName: "Name",
+        subprocessorPurpose: "Purpose",
+        subprocessorLocation: "Location",
+        sourcePlatform: "Platform infrastructure",
+        sourceOcr: "Workspace OCR choice",
+        noSubprocessors:
+          "The service provider has not published a sub-processor list yet.",
+        exportTitle: "Export workspace data",
+        exportIntro:
+          "Download a complete copy of the workspace data (companies, counterparties, transactions, tax snapshots, XML exports, imports, audit log) as JSON. Document files are downloaded per transaction. The download is recorded in the audit log.",
+        exportButton: "Download data (JSON)",
+        exportOwnerOnly: "Only Owners or Admins can export workspace data.",
+        summaryNote:
+          "This summary helps you understand how data is handled and does not replace the Terms of Use and Privacy Policy.",
+        terminationTitle: "Cancel subscription",
+        terminationIntro:
+          "After the {notice}-day notice period the workspace becomes read-only: data can still be viewed and exported, but no new records can be added. {retention}",
+        retentionWithDays:
+          "Documents and XML files are deleted automatically {days} days after the subscription ends.",
+        retentionNone:
+          "Automatic deletion has not been scheduled by the service provider yet.",
+        terminationRequest: "Request cancellation",
+        terminationConfirmTitle: "Request subscription cancellation?",
+        terminationConfirmBody:
+          "The service stays active until the effective date and you can withdraw the request before then. Download your data and documents before they are deleted, because keeping tax records remains your responsibility.",
+        terminationCancel: "Withdraw request",
+        terminationOwnerOnly:
+          "Only the workspace Owner can request cancellation.",
+        effectiveOn: "Effective on",
+        purgeOn: "Documents deleted on",
+        purgedOn: "Deleted on",
+      },
     },
   },
 } satisfies Record<

@@ -1,0 +1,208 @@
+import type { Locale } from "./messages";
+
+export const salesMessages = {
+  id: {
+    contactSales: "Daftar via sales",
+    registerTitle: "Daftar SerenTax untuk perusahaan Anda",
+    registerIntro:
+      "Ceritakan tentang organisasi Anda. Tim kami akan menghubungi Anda untuk menyiapkan ruang kerja, penawaran harga per faktur, dan pendampingan awal.",
+    formTitle: "Formulir pendaftaran",
+    submit: "Kirim pendaftaran",
+    sending: "Mengirim…",
+    selfServeHint: "Ingin mencoba sendiri dulu?",
+    selfServeLink: "Buat akun uji coba gratis",
+    successTitle: "Terima kasih, pendaftaran diterima",
+    successBody:
+      "Tim kami akan menghubungi Anda melalui email atau telepon dalam 1–2 hari kerja.",
+    privacyNote:
+      "Data ini hanya dipakai untuk menindaklanjuti pendaftaran Anda. NPWP disimpan terenkripsi.",
+    errors: {
+      INVALID_INPUT:
+        "Periksa kembali isian formulir (email, nomor telepon, atau NPWP).",
+      RATE_LIMITED:
+        "Terlalu banyak pendaftaran dari jaringan ini. Coba lagi nanti.",
+      FORBIDDEN:
+        "Permintaan ditolak. Buka halaman ini melalui alamat resmi SerenTax.",
+      SERVICE_UNAVAILABLE: "Layanan sedang tidak tersedia. Coba lagi nanti.",
+    },
+    // Admin
+    adminTitle: "Sales & penawaran",
+    adminIntro:
+      "Tindak lanjuti pendaftaran dari halaman publik dan catat penawaran harga per ruang kerja sesuai surat penawaran yang ditandatangani.",
+    tabLeads: "Prospek",
+    tabOffers: "Penawaran ruang kerja",
+    noLeads: "Belum ada pendaftaran.",
+    received: "Diterima",
+    contact: "Kontak",
+    estimated: "Perkiraan faktur/bulan",
+    edit: "Ubah",
+    save: "Simpan",
+    saved: "Perubahan disimpan.",
+    workspace: "Ruang kerja",
+    members: "Anggota",
+    invoicesThisMonth: "Faktur bulan ini",
+    chargeThisMonth: "Tagihan berjalan",
+    noOffer: "Belum ada penawaran",
+    offerTitle: "Penawaran untuk {name}",
+    // Billing page
+    perInvoiceTitle: "Tagihan per faktur",
+    perInvoiceIntro:
+      "Biaya dihitung dari jumlah faktur yang diproses setiap bulan (WIB) sesuai surat penawaran. Harga belum termasuk pajak.",
+    currentCharge: "Tagihan berjalan bulan ini",
+    invoicesProcessed: "Faktur diproses",
+    pricePerInvoice: "Harga per faktur",
+    minimumMonthly: "Minimum bulanan",
+    month: "Bulan",
+    charge: "Tagihan",
+    total: "Total 6 bulan",
+    offerRef: "Surat penawaran",
+    offerInactive:
+      "Penawaran tidak aktif pada tanggal ini; transaksi baru mengikuti uji coba atau lisensi.",
+    tabInvoices: "Invoice",
+    tabLifecycle: "Siklus langganan",
+    invoicesIntro:
+      "Buat draf invoice dari pemakaian per faktur, terbitkan, lalu catat pembayaran.",
+    sellerMissing:
+      "Data penerbit invoice belum lengkap. Isi BILLING_SELLER_NAME, BILLING_SELLER_ADDRESS, BILLING_BANK_NAME, BILLING_BANK_ACCOUNT_NO, dan BILLING_BANK_ACCOUNT_NAME di server sebelum menerbitkan.", // ui-standards-allow: superadmin setup instructions
+    generate: "Buat draf invoice",
+    generated: "{n} draf invoice dibuat.",
+    number: "Nomor",
+    dueDate: "Jatuh tempo",
+    totalLabel: "Total",
+    view: "Lihat",
+    issue: "Terbitkan",
+    markPaid: "Catat lunas",
+    voidInvoice: "Batalkan",
+    noInvoices: "Belum ada invoice.",
+    lifecycleIntro:
+      "Pantau pengajuan berhenti berlangganan dan penghapusan data otomatis. Job terjadwal menjalankan perubahan status dan penghapusan setiap hari.",
+    runNow: "Jalankan job sekarang",
+    runResult:
+      "{terminated} ruang kerja berakhir, {purged} ruang kerja dibersihkan ({docs} dokumen).",
+    terminate: "Akhiri langganan",
+    terminateTitle: "Akhiri langganan ruang kerja ini sekarang?",
+    noTerminations: "Belum ada pengajuan berhenti berlangganan.",
+    notice: "Pemberitahuan",
+    retention: "Retensi",
+    daysValue: "{n} hari",
+    notSet: "Belum diatur",
+    invoicesTitle: "Invoice",
+    invoicesCustomerIntro:
+      "Invoice bulanan untuk pemakaian per faktur. Buka invoice untuk mencetak atau menyimpannya sebagai PDF.",
+    payNow: "Bayar sekarang",
+    print: "Cetak / simpan PDF",
+    invoiceTitle: "INVOICE",
+    billedTo: "Ditagihkan kepada",
+    issuedOn: "Tanggal terbit",
+    description: "Uraian",
+    usageLine: "Pemakaian SerenTax — {n} faktur diproses ({period})",
+    minimumApplied: "Minimum bulanan berlaku",
+    subtotal: "Subtotal",
+    vat: "PPN {rate}%",
+    paymentInstructions: "Cara pembayaran",
+    transferTo: "Transfer ke {bank} · {account} a.n. {name}",
+    quoteNumber: "Cantumkan nomor invoice pada berita transfer.",
+    draftWatermark: "Draf — belum diterbitkan",
+  },
+  en: {
+    contactSales: "Talk to sales",
+    registerTitle: "Register SerenTax for your company",
+    registerIntro:
+      "Tell us about your organization. Our team will contact you to set up your workspace, a per-invoice price offer and onboarding.",
+    formTitle: "Registration form",
+    submit: "Submit registration",
+    sending: "Sending…",
+    selfServeHint: "Prefer to try it yourself first?",
+    selfServeLink: "Create a free trial account",
+    successTitle: "Thank you, your registration was received",
+    successBody:
+      "Our team will contact you by email or phone within 1–2 business days.",
+    privacyNote:
+      "This information is used only to follow up on your registration. Tax IDs are stored encrypted.",
+    errors: {
+      INVALID_INPUT: "Please check the form (email, phone number or tax ID).",
+      RATE_LIMITED:
+        "Too many registrations from this network. Please try again later.",
+      FORBIDDEN:
+        "Request rejected. Open this page from the official SerenTax address.",
+      SERVICE_UNAVAILABLE:
+        "The service is unavailable. Please try again later.",
+    },
+    adminTitle: "Sales & offers",
+    adminIntro:
+      "Follow up on registrations from the public page and record each workspace's price offer from the signed offer letter.",
+    tabLeads: "Leads",
+    tabOffers: "Workspace offers",
+    noLeads: "No registrations yet.",
+    received: "Received",
+    contact: "Contact",
+    estimated: "Estimated invoices/month",
+    edit: "Edit",
+    save: "Save",
+    saved: "Changes saved.",
+    workspace: "Workspace",
+    members: "Members",
+    invoicesThisMonth: "Invoices this month",
+    chargeThisMonth: "Current charge",
+    noOffer: "No offer yet",
+    offerTitle: "Offer for {name}",
+    perInvoiceTitle: "Per-invoice billing",
+    perInvoiceIntro:
+      "Charges are based on the invoices processed each month (WIB) under your offer letter. Prices exclude tax.",
+    currentCharge: "Current charge this month",
+    invoicesProcessed: "Invoices processed",
+    pricePerInvoice: "Price per invoice",
+    minimumMonthly: "Monthly minimum",
+    month: "Month",
+    charge: "Charge",
+    total: "6-month total",
+    offerRef: "Offer letter",
+    offerInactive:
+      "The offer is not active on this date; new transactions follow the trial or license.",
+    tabInvoices: "Invoices",
+    tabLifecycle: "Subscription lifecycle",
+    invoicesIntro:
+      "Create invoice drafts from per-invoice usage, issue them, then record payments.",
+    sellerMissing:
+      "Invoice issuer details are incomplete. Set BILLING_SELLER_NAME, BILLING_SELLER_ADDRESS, BILLING_BANK_NAME, BILLING_BANK_ACCOUNT_NO and BILLING_BANK_ACCOUNT_NAME on the server before issuing.", // ui-standards-allow: superadmin setup instructions
+    generate: "Create invoice drafts",
+    generated: "{n} invoice drafts created.",
+    number: "Number",
+    dueDate: "Due date",
+    totalLabel: "Total",
+    view: "View",
+    issue: "Issue",
+    markPaid: "Record payment",
+    voidInvoice: "Void",
+    noInvoices: "No invoices yet.",
+    lifecycleIntro:
+      "Track cancellation requests and automatic data deletion. The scheduled job applies status changes and deletions daily.",
+    runNow: "Run job now",
+    runResult:
+      "{terminated} workspaces ended, {purged} workspaces purged ({docs} documents).",
+    terminate: "End subscription",
+    terminateTitle: "End this workspace's subscription now?",
+    noTerminations: "No cancellation requests yet.",
+    notice: "Notice",
+    retention: "Retention",
+    daysValue: "{n} days",
+    notSet: "Not set",
+    invoicesTitle: "Invoices",
+    invoicesCustomerIntro:
+      "Monthly invoices for per-invoice usage. Open an invoice to print it or save it as PDF.",
+    payNow: "Pay now",
+    print: "Print / save PDF",
+    invoiceTitle: "INVOICE",
+    billedTo: "Billed to",
+    issuedOn: "Issue date",
+    description: "Description",
+    usageLine: "SerenTax usage — {n} invoices processed ({period})",
+    minimumApplied: "Monthly minimum applies",
+    subtotal: "Subtotal",
+    vat: "VAT {rate}%",
+    paymentInstructions: "How to pay",
+    transferTo: "Transfer to {bank} · {account} in the name of {name}",
+    quoteNumber: "Include the invoice number in the transfer description.",
+    draftWatermark: "Draft — not issued yet",
+  },
+} satisfies Record<Locale, Record<string, string | Record<string, string>>>;

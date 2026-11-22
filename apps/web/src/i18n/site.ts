@@ -167,16 +167,28 @@ export const siteMessages = {
     ],
     privacySections: [
       {
-        title: "Data pada rilis saat ini",
-        body: "Fitur akun menggunakan nama, email, kredensial autentikasi, sesi, keanggotaan, undangan, dan pemakaian trial. Unggah invoice dan OCR belum tersedia.",
+        title: "Data yang diproses",
+        body: "Akun (nama, email, sesi), data ruang kerja (perusahaan, lawan transaksi, NPWP/NIK yang disimpan terenkripsi, transaksi, evaluasi pajak, ekspor XML), dokumen sumber yang Anda unggah, hasil baca OCR, serta log audit aktivitas.",
       },
       {
-        title: "Kebijakan yang masih perlu ditetapkan",
-        body: "Dasar pemrosesan, lokasi penyimpanan, pemroses, masa retensi, hak subjek data, penghapusan, dan kontak privasi belum difinalisasi.",
+        title: "Tujuan dan batas penggunaan",
+        body: "Data diproses hanya untuk menjalankan layanan bagi ruang kerja Anda: menyiapkan, meninjau, dan mengekspor dokumen pajak. Data tidak dijual dan tidak dipakai untuk melatih model AI.",
       },
       {
-        title: "Batas sementara",
-        body: "Jangan unggah data wajib pajak atau pelanggan produksi pada rilis pengembangan ini. Halaman ini tidak menyatakan kepatuhan atau menggantikan pemberitahuan privasi final.",
+        title: "Pihak pemroses (subprocessor)",
+        body: "Penyedia infrastruktur dan, bila Anda memilihnya, vendor AI/OCR yang disetujui platform. Daftar terbaru beserta lokasi pemrosesan ditampilkan di aplikasi (Pengaturan → Data & privasi). Vendor AI hanya dipakai setelah persetujuan Pemilik/Admin.",
+      },
+      {
+        title: "Retensi dan penghapusan",
+        body: "Anda dapat menghapus dokumen kapan saja. Setelah langganan berakhir, ruang kerja menjadi baca-saja dan dokumen dihapus otomatis sesuai masa retensi yang ditampilkan di aplikasi. Kewajiban menyimpan dokumen pajak menurut peraturan perpajakan tetap menjadi tanggung jawab Anda.",
+      },
+      {
+        title: "Hak Anda",
+        body: "Pemilik/Admin dapat mengunduh salinan lengkap data ruang kerja, memperbaiki data, dan menghapus dokumen dari aplikasi. Permintaan lain terkait data pribadi dapat diajukan kepada penyedia layanan.",
+      },
+      {
+        title: "Masih perlu ditetapkan sebelum produksi",
+        body: "Identitas pengendali data, dasar pemrosesan, kontak pelindungan data, prosedur pemberitahuan insiden, dan ketentuan transfer data ke luar negeri sesuai UU Pelindungan Data Pribadi harus difinalisasi bersama penasihat hukum. Halaman ini belum menyatakan kepatuhan.",
       },
     ],
     appTitle: "Ringkasan",
@@ -377,16 +389,28 @@ export const siteMessages = {
     ],
     privacySections: [
       {
-        title: "Data in the current release",
-        body: "Account features use names, email addresses, authentication credentials, sessions, memberships, invitations, and trial usage. Invoice uploads and OCR are not available.",
+        title: "Data we process",
+        body: "Account data (name, email, sessions), workspace data (companies, counterparties, tax IDs stored encrypted, transactions, tax evaluations, XML exports), source documents you upload, OCR results, and an activity audit log.",
       },
       {
-        title: "Policies still to be defined",
-        body: "Processing basis, storage location, processors, retention periods, data-subject rights, deletion, and privacy contacts are not finalized.",
+        title: "Purpose and limits",
+        body: "Data is processed only to run the service for your workspace: preparing, reviewing and exporting tax documents. It is never sold and never used to train AI models.",
       },
       {
-        title: "Interim boundary",
-        body: "Do not upload production taxpayer or customer data in this development release. This page does not claim compliance or replace a final privacy notice.",
+        title: "Sub-processors",
+        body: "Infrastructure providers and, when you choose one, a platform-approved AI/OCR vendor. The current list with processing locations is shown in the app (Settings → Data & privacy). AI vendors are used only after an Owner/Admin consents.",
+      },
+      {
+        title: "Retention and deletion",
+        body: "You can delete documents at any time. After the subscription ends the workspace becomes read-only and documents are deleted automatically after the retention period shown in the app. Keeping tax records as required by tax regulations remains your responsibility.",
+      },
+      {
+        title: "Your rights",
+        body: "Owners/Admins can download a complete copy of the workspace data, correct data and delete documents in the app. Other personal-data requests can be sent to the service provider.",
+      },
+      {
+        title: "Still to be finalized before production",
+        body: "The data controller's identity, processing basis, data protection contact, incident notification procedure and cross-border transfer terms under Indonesia's Personal Data Protection Law must be finalized with legal counsel. This page does not claim compliance.",
       },
     ],
     appTitle: "Overview",

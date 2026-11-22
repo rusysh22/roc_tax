@@ -5,6 +5,7 @@ import { codeLabel } from "@/i18n/codes";
 import { Combobox } from "@/components/ui/combobox";
 import { FormField } from "@/components/ui/field";
 import { comboLabels } from "@/components/views/page-state";
+import type { OcrAdapterKey } from "@/lib/intake/ocr";
 import type { Locale } from "@/i18n/messages";
 import { ocrMessages } from "@/i18n/ocr";
 import { siteMessages } from "@/i18n/site";
@@ -24,7 +25,7 @@ import {
 type AllowedProvider = {
   slug: string;
   displayName: string;
-  adapterKey: "NONE" | "SYNTHETIC_TEST" | "EXTERNAL_NOT_CONFIGURED";
+  adapterKey: OcrAdapterKey;
   model: string;
   region: string;
   maxPages: number;
@@ -215,7 +216,11 @@ export function OrgOcrSettingsView({ locale }: { locale: Locale }) {
                 <strong>{t.modelLabel}:</strong> {chosenProvider.model} ·{" "}
                 <strong>{t.regionLabel}:</strong> {chosenProvider.region} ·{" "}
                 <strong>{t.retentionLabel}:</strong>{" "}
-                {chosenProvider.retentionPolicy}
+                {codeLabel(
+                  locale,
+                  "retentionPolicy",
+                  chosenProvider.retentionPolicy,
+                )}
               </p>
               <p>
                 <strong>{t.capLabel}:</strong> {chosenProvider.monthlyPageCap}{" "}

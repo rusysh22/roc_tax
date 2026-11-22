@@ -27,11 +27,12 @@ import {
 import { allows, type TransactionStatus } from "../../lib/intake/state";
 import { jakartaDate } from "../trial/state";
 import { trialService } from "../trial/service";
-import { AccessError } from "../workspaces/policy";
+import { AccessError, can } from "../workspaces/policy";
 import { requireActor, requireMembership } from "../workspaces/service";
 import type { TaxCrypto } from "./crypto";
 import { inspectDocument, MAX_DOCUMENTS_PER_TRANSACTION } from "./documents";
 import type { DocumentStorage } from "./storage";
+import { assertWorkspaceWritable } from "../lifecycle/state";
 
 type Tx = Prisma.TransactionClient;
 
@@ -887,7 +888,9 @@ export function intakeService(
           counterparty: {
             select: { id: true, name: true, identityHint: true },
           },
-          _count: { select: { documents: true, lines: true } },
+          _count: {
+            select: { documents: { where: { deletedAt: null } }, lines: true },
+          },
         },
         orderBy,
         skip: (query.page - 1) * query.pageSize,
@@ -1049,6 +1052,7 @@ export function intakeService(
             sha256: doc.sha256,
             scanStatus: doc.scanStatus,
             createdAt: doc.createdAt.toISOString(),
+            deletedAt: doc.deletedAt?.toISOString() ?? null,
           })),
           comments: row.comments.map((comment) => ({
             id: comment.id,
@@ -1272,8 +1276,17 @@ export function intakeService(
         if (!transaction) throw new IntakeError("NOT_FOUND");
         if (!allows(transaction.status, "attach"))
           throw new IntakeError("INVALID_STATE");
+        await assertWorkspaceWritable(
+          tx,
+          organizationId,
+          await databaseNow(tx),
+        );
         const count = await tx.sourceDocument.count({
-          where: { transactionId: transaction.id, organizationId },
+          where: {
+            transactionId: transaction.id,
+            organizationId,
+            deletedAt: null,
+          },
         });
         if (count >= MAX_DOCUMENTS_PER_TRANSACTION)
           throw new IntakeError("DOCUMENT_LIMIT");
@@ -1282,6 +1295,7 @@ export function intakeService(
             transactionId: transaction.id,
             organizationId,
             sha256: inspected.sha256,
+            deletedAt: null,
           },
         });
         if (duplicate) throw new IntakeError("DUPLICATE_DOCUMENT");
@@ -1344,7 +1358,12 @@ export function intakeService(
       async (tx, { session, membership }) => {
         const organizationId = membership.organizationId;
         const found = await tx.sourceDocument.findFirst({
-          where: { id: documentId, transactionId, organizationId },
+          where: {
+            id: documentId,
+            transactionId,
+            organizationId,
+            deletedAt: null,
+          },
         });
         if (!found) throw new IntakeError("NOT_FOUND");
         await tx.workspaceAudit.create({
@@ -1367,6 +1386,76 @@ export function intakeService(
     };
   }
 
+  /**
+   * Customer-initiated document deletion (any transaction status). Removes the
+   * stored file and OCR candidates derived from it; keeps a tombstone and an
+   * audit entry. OCR job records stay so monthly OCR caps cannot be bypassed.
+   */
+  async function deleteDocument(
+    sessionId: string,
+    transactionId: string,
+    documentId: string,
+  ) {
+    const removed = await withActive(
+      sessionId,
+      undefined,
+      async (tx, { session, membership }) => {
+        if (
+          !can(membership.role, "draft.prepare") &&
+          !can(membership.role, "team.manage")
+        )
+          throw new AccessError("FORBIDDEN");
+        const organizationId = membership.organizationId;
+        const doc = await tx.sourceDocument.findFirst({
+          where: {
+            id: documentId,
+            transactionId,
+            organizationId,
+            deletedAt: null,
+          },
+        });
+        if (!doc) throw new IntakeError("NOT_FOUND");
+        const now = await databaseNow(tx);
+        await tx.ocrCandidate.deleteMany({
+          where: { documentId: doc.id, organizationId },
+        });
+        await tx.sourceDocument.update({
+          where: { id: doc.id },
+          data: {
+            deletedAt: now,
+            deletedBy: session.userId,
+            storageKey: `${organizationId}/deleted-${doc.id}`,
+          },
+        });
+        await tx.transactionEvent.create({
+          data: {
+            organizationId,
+            transactionId: doc.transactionId,
+            actorId: session.userId,
+            action: "DOCUMENT_DELETED",
+            changes: {
+              documentId: doc.id,
+              originalName: doc.originalName,
+              sha256: doc.sha256,
+              sizeBytes: doc.sizeBytes,
+            },
+          },
+        });
+        await tx.workspaceAudit.create({
+          data: {
+            organizationId,
+            actorId: session.userId,
+            action: "DOCUMENT_DELETED",
+            targetId: doc.id,
+          },
+        });
+        return { organizationId, storageKey: doc.storageKey, id: doc.id };
+      },
+    );
+    await storage.remove(removed.organizationId, removed.storageKey);
+    return { id: removed.id, deleted: true };
+  }
+
   return {
     listCompanies,
     mutateCompany,
@@ -1378,6 +1467,7 @@ export function intakeService(
     getTransaction,
     mutateTransaction,
     attachDocument,
+    deleteDocument,
     readDocument,
   };
 }
