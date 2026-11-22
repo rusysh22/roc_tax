@@ -6,7 +6,7 @@
 - Positioning: Indonesian tax document preparation and Coretax-compatible XML export, not tax filing automation, not DJP/PJAP representation.
 - Target users: accounting clerks, tax staff, tax manager/approver, company admins, internal SerenTax superadmin.
 - Default locale `id`, optional `en`; currency IDR, timezone Asia/Jakarta for daily quota; data UTC.
-- Visual: intentionally black-white-neutral grayscale. No colorful fintech dashboard aesthetic.
+- Visual: neutral black/white base with **semantic colour only** (blue = primary/info, green = success/approve, amber = warning/pending, red = danger/destructive, violet = exported, gray = draft). No decorative colour. Mandatory UI rules live in `14_UI_STANDARDS.md` (enforced by `tests/unit/ui-standards.test.ts`).
 - Framework Next.js + TypeScript; server-only tax, billing, auth, OCR credentials.
 
 ## Permanent business rules
@@ -33,6 +33,7 @@ Each batch must maintain this file with the headings below. Never store password
 
 - Batch 10 implemented on 2026-11-17. Verification and handoff are in `10_BATCH_REPORT.md`.
 - 2026-11-22 local readiness pass (not Batch 11): subscription-entitled creation via `EntitledUsage`, default workspace on sign-in, synthetic billing key derived from server secret, UI/copy fixes, `npm run db:seed:dev` demo workspace, and core-flow browser E2E. Details in `13_DECISIONS_AND_OPEN_ITEMS.md`.
+- 2026-11-22 UI standards pass: semantic colour CTAs/badges, code registry (`i18n/codes.ts`) replaces raw technical names everywhere, field dictionary (`i18n/fields.ts`) with functional + technical info tips on every field, 50-row pagination + bounded scrolling + bold totals, tabbed Settings with a policy-driven role matrix. See `14_UI_STANDARDS.md`.
 - 2026-11-22 UI redesign: monochrome design system with Figtree, Odoo-style shell (module home, navbar, collapsible sidebar/drawer), and the standard ListPage/FormPage/Wizard + searchable Combobox framework used by all CRUD screens; theme/language bugs fixed. See `13_DECISIONS_AND_OPEN_ITEMS.md`. Docker Desktop WSL2 blocker remains an endpoint `DenyDeviceClasses` Group Policy; native PostgreSQL testing continues independently.
 
 ### Completed batches

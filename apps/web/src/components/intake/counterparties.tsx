@@ -141,7 +141,7 @@ export function CounterpartiesList({ locale }: { locale: Locale }) {
     {
       key: "kind",
       header: t.kind,
-      cell: (c) => <Badge tone="outline">{t.kinds[c.kind]}</Badge>,
+      cell: (c) => <Badge tone="gray">{t.kinds[c.kind]}</Badge>,
     },
     {
       key: "identity",
@@ -177,9 +177,9 @@ export function CounterpartiesList({ locale }: { locale: Locale }) {
       header: t.status,
       cell: (c) =>
         c.archivedAt ? (
-          <Badge tone="muted">{v.archived}</Badge>
+          <Badge tone="gray">{v.archived}</Badge>
         ) : (
-          <Badge tone="solid" dot>
+          <Badge tone="green" dot>
             {v.active}
           </Badge>
         ),
@@ -399,6 +399,7 @@ export function CounterpartyForm({
                 </MenuItem>
                 <MenuSeparator />
                 <MenuItem
+                  danger
                   icon={<Trash2 />}
                   disabled={record.transactionCount > 0}
                   onSelect={() => {
@@ -421,30 +422,54 @@ export function CounterpartyForm({
         <div className="space-y-8">
           <SheetTitle
             label={t.counterpartyName}
-            aside={<Badge tone="outline">{t.kinds[record.kind]}</Badge>}
+            aside={<Badge tone="gray">{t.kinds[record.kind]}</Badge>}
           >
             {record.name}
           </SheetTitle>
           <div className="grid gap-x-12 gap-y-6 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              <FormField label={t.kind} layout="inline">
+              <FormField
+                field="counterparty.kind"
+                label={t.kind}
+                layout="inline"
+              >
                 <ReadValue>{t.kinds[record.kind]}</ReadValue>
               </FormField>
-              <FormField label={t.countryCode} layout="inline">
+              <FormField
+                field="counterparty.countryCode"
+                label={t.countryCode}
+                layout="inline"
+              >
                 <ReadValue mono>{record.countryCode}</ReadValue>
               </FormField>
-              <FormField label={t.address} layout="inline">
+              <FormField
+                field="counterparty.address"
+                label={t.address}
+                layout="inline"
+              >
                 <ReadValue>{record.address}</ReadValue>
               </FormField>
             </FieldGroup>
             <FieldGroup title={t.identityType}>
-              <FormField label={t.identityType} layout="inline">
+              <FormField
+                field="counterparty.identityType"
+                label={t.identityType}
+                layout="inline"
+              >
                 <ReadValue>{t.identityTypes[record.identityType]}</ReadValue>
               </FormField>
-              <FormField label={t.identityValue} layout="inline">
+              <FormField
+                field="counterparty.identity"
+                label={t.identityValue}
+                layout="inline"
+              >
                 <ReadValue mono>{masked(record.identityHint)}</ReadValue>
               </FormField>
-              <FormField label={s.menuTransactions} layout="inline">
+              <FormField
+                field="counterparty.transactionCount"
+                label={s.menuTransactions}
+                layout="inline"
+              >
                 <ReadValue>{record.transactionCount}</ReadValue>
               </FormField>
             </FieldGroup>
@@ -469,7 +494,11 @@ export function CounterpartyForm({
               {error}
             </p>
           )}
-          <FormField label={t.counterpartyName} required>
+          <FormField
+            field="counterparty.name"
+            label={t.counterpartyName}
+            required
+          >
             <TextInput
               value={draft.name}
               onChange={(e) => set({ name: e.target.value })}
@@ -480,7 +509,12 @@ export function CounterpartyForm({
           </FormField>
           <div className="grid gap-x-12 gap-y-5 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              <FormField label={t.kind} required layout="inline">
+              <FormField
+                field="counterparty.kind"
+                label={t.kind}
+                required
+                layout="inline"
+              >
                 <Combobox
                   value={draft.kind}
                   onChange={(value) =>
@@ -494,6 +528,7 @@ export function CounterpartyForm({
                 />
               </FormField>
               <FormField
+                field="counterparty.countryCode"
                 label={t.countryCode}
                 required
                 layout="inline"
@@ -508,7 +543,11 @@ export function CounterpartyForm({
                   className="w-24 font-mono uppercase"
                 />
               </FormField>
-              <FormField label={t.address} layout="inline">
+              <FormField
+                field="counterparty.address"
+                label={t.address}
+                layout="inline"
+              >
                 <TextArea
                   value={draft.address}
                   onChange={(e) => set({ address: e.target.value })}
@@ -518,7 +557,12 @@ export function CounterpartyForm({
               </FormField>
             </FieldGroup>
             <FieldGroup title={t.identityType}>
-              <FormField label={t.identityType} required layout="inline">
+              <FormField
+                field="counterparty.identityType"
+                label={t.identityType}
+                required
+                layout="inline"
+              >
                 <Combobox
                   value={draft.identityType}
                   onChange={(value) =>
@@ -534,6 +578,7 @@ export function CounterpartyForm({
               </FormField>
               {identityNeeded && (
                 <FormField
+                  field="counterparty.identity"
                   label={t.identityValue}
                   layout="inline"
                   help={
@@ -562,6 +607,7 @@ export function CounterpartyForm({
         }
         body={confirm === "delete" ? v.confirmDeleteBody : v.confirmArchiveBody}
         confirmLabel={confirm === "delete" ? v.delete : v.archive}
+        tone={confirm === "delete" ? "danger" : "warning"}
         cancelLabel={v.cancel}
         onConfirm={() =>
           confirm &&

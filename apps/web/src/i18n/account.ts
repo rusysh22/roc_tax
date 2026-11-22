@@ -61,7 +61,7 @@ export const accountMessages = {
     forbidden:
       "Akses ditolak. Peran atau keanggotaan Anda mungkin telah berubah.",
     originMismatch:
-      "Permintaan ditolak karena alamat aplikasi tidak cocok. Buka SerenTax melalui alamat resmi yang dikonfigurasi (BETTER_AUTH_URL), lalu coba lagi.",
+      "Permintaan ditolak karena alamat aplikasi tidak cocok. Buka SerenTax melalui alamat resmi yang dikonfigurasi, lalu coba lagi.",
     invalidCredentials: "Email atau kata sandi salah.",
     emailNotVerified:
       'Email belum diverifikasi. Buka tautan verifikasi di email Anda atau kirim ulang melalui "Verifikasi email".',
@@ -74,6 +74,49 @@ export const accountMessages = {
     refresh: "Muat ulang",
     expires: "Berlaku hingga",
     changedPassword: "Kata sandi diubah. Silakan masuk kembali.",
+    settings: {
+      subtitle: "Profil Anda, ruang kerja, tim, peran, dan keamanan akun.",
+      noActive: "Belum ada ruang kerja aktif",
+      yourRole: "Peran Anda",
+      tabs: {
+        profile: "Profil",
+        workspaces: "Ruang kerja",
+        team: "Tim",
+        roles: "Peran & hak akses",
+        approval: "Persetujuan",
+        support: "Akses dukungan",
+        security: "Keamanan & sesi",
+      },
+      profileIntro:
+        "Data yang dipakai SerenTax untuk mengenali Anda di komentar, riwayat audit, dan persetujuan.",
+      permissionsTitle: "Yang dapat Anda lakukan di ruang kerja ini",
+      noPermissions:
+        "Pilih atau buat ruang kerja untuk melihat hak akses Anda.",
+      myWorkspaces: "Ruang kerja saya",
+      activeBadge: "Aktif",
+      workspaceSettings: "Pengaturan ruang kerja",
+      ocrSettingsHint: "Pilih cara membaca dokumen (manual atau penyedia OCR).",
+      billingHint: "Status lisensi, kuota, dan penggunaan.",
+      members: "Anggota",
+      member: "Anggota",
+      noMembers: "Belum ada anggota lain.",
+      inviteIntro:
+        "Undangan dikirim lewat email, berlaku 48 jam, dan hanya untuk email tersebut.",
+      matrixIntro:
+        "Matriks ini dibaca langsung dari kebijakan akses sistem. Arahkan kursor ke ikon info untuk penjelasan setiap hak akses dan peran.",
+      permission: "Hak akses",
+      allowed: "Diizinkan",
+      notAllowed: "Tidak diizinkan",
+      approvalIntro:
+        "Atur apakah pembuat transaksi boleh menyetujui transaksinya sendiri.",
+      securityIntro:
+        "Kelola kata sandi dan perangkat yang sedang masuk ke akun Anda.",
+      device: "Perangkat",
+      thisDevice: "Perangkat ini",
+      status: "Status",
+      actions: "Tindakan",
+      changeRoleConfirm: "Ubah peran anggota ini?",
+    },
   },
   en: {
     signIn: "Sign in",
@@ -134,7 +177,7 @@ export const accountMessages = {
     confirm: "Confirm this action?",
     forbidden: "Access denied. Your role or membership may have changed.",
     originMismatch:
-      "Request rejected because the app address does not match. Open SerenTax at its configured address (BETTER_AUTH_URL) and try again.",
+      "Request rejected because the app address does not match. Open SerenTax at its configured address and try again.",
     invalidCredentials: "Incorrect email or password.",
     emailNotVerified:
       'Email not verified. Open the verification link in your email or resend it via "Verify email".',
@@ -147,8 +190,54 @@ export const accountMessages = {
     refresh: "Reload",
     expires: "Expires",
     changedPassword: "Password changed. Please sign in again.",
+    settings: {
+      subtitle: "Your profile, workspaces, team, roles and account security.",
+      noActive: "No active workspace yet",
+      yourRole: "Your role",
+      tabs: {
+        profile: "Profile",
+        workspaces: "Workspaces",
+        team: "Team",
+        roles: "Roles & permissions",
+        approval: "Approval",
+        support: "Support access",
+        security: "Security & sessions",
+      },
+      profileIntro:
+        "Details SerenTax uses to identify you in comments, audit history and approvals.",
+      permissionsTitle: "What you can do in this workspace",
+      noPermissions: "Select or create a workspace to see your permissions.",
+      myWorkspaces: "My workspaces",
+      activeBadge: "Active",
+      workspaceSettings: "Workspace settings",
+      ocrSettingsHint:
+        "Choose how documents are read (manual or an OCR provider).",
+      billingHint: "License status, quota and usage.",
+      members: "Members",
+      member: "Member",
+      noMembers: "No other members yet.",
+      inviteIntro:
+        "Invitations are emailed, valid for 48 hours, and only for that email.",
+      matrixIntro:
+        "This matrix is read directly from the system access policy. Hover the info icons for what each permission and role means.",
+      permission: "Permission",
+      allowed: "Allowed",
+      notAllowed: "Not allowed",
+      approvalIntro:
+        "Decide whether a transaction's creator may approve it themselves.",
+      securityIntro:
+        "Manage your password and the devices signed in to your account.",
+      device: "Device",
+      thisDevice: "This device",
+      status: "Status",
+      actions: "Actions",
+      changeRoleConfirm: "Change this member's role?",
+    },
   },
-} satisfies Record<Locale, Record<string, string | Record<string, string>>>;
+} satisfies Record<
+  Locale,
+  Record<string, string | Record<string, string | Record<string, string>>>
+>;
 export function accountError(code: string | undefined, locale: Locale) {
   const t = accountMessages[locale];
   switch (code) {

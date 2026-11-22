@@ -4,8 +4,13 @@ import type { Locale } from "@/i18n/messages";
 import { reportMessages } from "@/i18n/reports";
 import { formatDate } from "@/i18n/format";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status";
-import { Field, Submit } from "@/components/account/forms";
+import { CodeBadge } from "@/components/ui/code-badge";
+import { Submit } from "@/components/account/forms";
+import { FormField, TextInput } from "@/components/ui/field";
+import { Notice } from "@/components/ui/status";
+import { PagedFooter, usePaged } from "@/components/views/paged";
+import { codeLabel } from "@/i18n/codes";
+import { viewMessages } from "@/i18n/views";
 import { apiGet, apiPost, formatFailure } from "@/components/intake/client";
 
 type SupportPayload = {
@@ -32,6 +37,8 @@ export function SupportAccessPanel({ locale }: { locale: Locale }) {
   const [reason, setReason] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("60");
   const [busy, setBusy] = useState(false);
+  const grantsPage = usePaged(data?.grants ?? []);
+  const auditsPage = usePaged(data?.audits ?? []);
   const [feedback, setFeedback] = useState("");
 
   async function load() {
@@ -82,75 +89,123 @@ export function SupportAccessPanel({ locale }: { locale: Locale }) {
   }
 
   if (!data) return null;
+  const v = viewMessages[locale];
 
   return (
-    <div className="space-y-3 rounded-md border p-4 text-xs">
-      <h3 className="text-sm font-semibold">{t.supportSectionTitle}</h3>
-      <p className="text-muted-foreground">{t.supportSectionIntro}</p>
+    <section className="space-y-5">
+      <div className="space-y-0.5 border-b pb-2">
+        <h2 className="text-base font-semibold">{t.supportSectionTitle}</h2>
+        <p className="text-sm text-muted-foreground">{t.supportSectionIntro}</p>
+      </div>
       {feedback && (
-        <p role="alert" className="rounded border p-2">
+        <Notice tone="danger" role="alert">
           {feedback}
-        </p>
+        </Notice>
       )}
-      <form onSubmit={onGrant} className="grid gap-3 md:grid-cols-3">
-        <Field
+      <form onSubmit={onGrant} className="grid max-w-2xl gap-y-3">
+        <FormField
+          field="support.reason"
           label={t.supportReasonLabel}
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          minLength={5}
           required
-        />
-        <Field
+          layout="inline"
+        >
+          <TextInput
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            minLength={5}
+          />
+        </FormField>
+        <FormField
+          field="support.duration"
           label={t.supportDurationLabel}
-          type="number"
-          min={15}
-          max={120}
-          value={durationMinutes}
-          onChange={(e) => setDurationMinutes(e.target.value)}
           required
-        />
-        <div className="flex items-end">
+          layout="inline"
+        >
+          <TextInput
+            type="number"
+            min={15}
+            max={120}
+            value={durationMinutes}
+            onChange={(e) => setDurationMinutes(e.target.value)}
+          />
+        </FormField>
+        <div className="flex justify-end">
           <Submit busy={busy}>{t.supportGrantButton}</Submit>
         </div>
       </form>
-      {data.grants.length > 0 && (
-        <ul className="space-y-2">
-          {data.grants.map((g) => (
-            <li
-              key={g.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded border p-2"
-            >
-              <span>
-                <StatusBadge>{g.status}</StatusBadge> · {g.reason} · exp{" "}
-                {formatDate(new Date(g.expiresAt), locale)}
-              </span>
-              {g.status === "ACTIVE" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => void onRevoke(g.id)}
-                >
-                  {t.supportRevokeButton}
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
+      {grantsPage.total > 0 && (
+        <div className="overflow-hidden rounded-lg border">
+          <div className="scroll-thin overflow-x-auto">
+            <table className="w-full min-w-[32rem] text-sm">
+              <thead className="bg-surface-2 text-xs text-muted-foreground">
+                <tr className="border-b">
+                  <th className="px-3 py-2.5 text-left font-semibold">
+                    {v.status}
+                  </th>
+                  <th className="px-3 py-2.5 text-left font-semibold">
+                    {t.supportReasonLabel}
+                  </th>
+                  <th className="px-3 py-2.5 text-left font-semibold">
+                    {v.until}
+                  </th>
+                  <th className="px-3 py-2.5" />
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {grantsPage.rows.map((g) => (
+                  <tr key={g.id}>
+                    <td className="px-3 py-2.5">
+                      <CodeBadge domain="supportAccess" code={g.status} />
+                    </td>
+                    <td className="px-3 py-2.5">{g.reason}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {formatDate(new Date(g.expiresAt), locale)}
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {g.status === "ACTIVE" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="danger"
+                          disabled={busy}
+                          onClick={() => void onRevoke(g.id)}
+                        >
+                          {t.supportRevokeButton}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <PagedFooter paged={grantsPage} v={v} />
+        </div>
       )}
-      {data.audits.length > 0 && (
-        <div className="space-y-1 border-t pt-2">
-          <p className="font-semibold">{t.supportAuditsTitle}</p>
-          <ul className="space-y-1 font-mono text-muted-foreground">
-            {data.audits.map((a) => (
-              <li key={a.id}>
-                {a.action} · {a.reason} ·{" "}
-                {formatDate(new Date(a.accessedAt), locale)}
+      {auditsPage.total > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold">{t.supportAuditsTitle}</h3>
+          <ul className="divide-y rounded-lg border text-sm">
+            {auditsPage.rows.map((a) => (
+              <li
+                key={a.id}
+                className="flex flex-wrap justify-between gap-2 px-3 py-2"
+              >
+                <span>
+                  <span className="font-medium">
+                    {codeLabel(locale, "auditAction", a.action)}
+                  </span>{" "}
+                  <span className="text-muted-foreground">· {a.reason}</span>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(new Date(a.accessedAt), locale)}
+                </span>
               </li>
             ))}
           </ul>
+          <PagedFooter paged={auditsPage} v={v} />
         </div>
       )}
-    </div>
+    </section>
   );
 }

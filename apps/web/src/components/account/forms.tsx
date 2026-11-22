@@ -1,18 +1,21 @@
 "use client";
 import type { ComponentProps } from "react";
+import type { FieldKey } from "@/i18n/fields";
 import { Button } from "@/components/ui/button";
+import { FormField, TextInput } from "@/components/ui/field";
 
-/** Legacy labelled input, styled with the shared field chrome. */
+/** Shorthand text field: standard FormField (label + info tip) + input. */
 export function Field({
+  field,
   label,
   className,
+  required,
   ...props
-}: ComponentProps<"input"> & { label: string }) {
+}: ComponentProps<"input"> & { field: FieldKey; label?: string }) {
   return (
-    <label className="block space-y-1.5 text-sm font-medium">
-      <span>{label}</span>
-      <input className={`field-control ${className ?? ""}`} {...props} />
-    </label>
+    <FormField field={field} label={label} required={required}>
+      <TextInput className={className} {...props} />
+    </FormField>
   );
 }
 export function Submit({

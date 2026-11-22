@@ -28,6 +28,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { LocaleSwitch, ThemeToggle } from "./preferences";
 import { activeMenu, appModules, type ModuleDef } from "./modules";
+import { BrandLogo } from "@/components/ui/brand";
 
 export type ShellUser = { name: string; email: string; superadmin: boolean };
 type Workspaces = {
@@ -101,7 +102,10 @@ function SidebarNav({
               <div className="mx-auto my-2 h-px w-6 bg-border" />
             ) : (
               <p className="flex items-center gap-2 px-3 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">
-                <ModuleIcon aria-hidden="true" className="size-3.5" />
+                <ModuleIcon
+                  aria-hidden="true"
+                  className={`size-3.5 ${module.accent}`}
+                />
                 {module.label}
               </p>
             )}
@@ -249,9 +253,9 @@ export function AppShell({
         </Link>
         <Link
           href={`/${locale}/app`}
-          className="hidden px-2 text-[1.0625rem] font-bold tracking-tight sm:block"
+          className="hidden items-center px-2 text-white sm:flex"
         >
-          SerenTax<span className="text-navbar-muted">.</span>
+          <BrandLogo className="h-6" />
         </Link>
         {current && (
           <>
@@ -472,9 +476,9 @@ export function AppShell({
             <div className="flex h-12 items-center justify-between border-b px-4">
               <Link
                 href={`/${locale}/app`}
-                className="text-[1.0625rem] font-bold tracking-tight"
+                className="flex items-center text-foreground"
               >
-                SerenTax.
+                <BrandLogo className="h-6" />
               </Link>
               <button
                 type="button"

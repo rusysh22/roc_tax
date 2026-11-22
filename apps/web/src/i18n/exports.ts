@@ -4,24 +4,24 @@ export const exportMessages = {
   id: {
     pageTitle: "Ekspor XML Coretax",
     pageIntro:
-      "Buat berkas XML dari transaksi yang sudah disetujui (APPROVED) dan snapshot pajak terkunci. Tidak ada pengiriman otomatis ke DJP; pengguna mengunggah berkas secara manual ke portal Coretax dan mencatat hasilnya.",
+      "Buat berkas XML dari transaksi yang sudah disetujui dan snapshot pajak terkunci. Tidak ada pengiriman otomatis ke DJP; pengguna mengunggah berkas secara manual ke portal Coretax dan mencatat hasilnya.",
     familyStatusTitle: "Status templat resmi DJP per keluarga dokumen",
     availableBadge: "Tersedia (templat terverifikasi sumber)",
-    unverifiedBadge: "Diblokir (TEMPLATE_UNVERIFIED)",
+    unverifiedBadge: "Diblokir (templat belum terverifikasi)",
     sourceCitationLabel: "Sumber resmi DJP",
     sourceShaLabel: "SHA-256 sumber",
     schemaShaLabel: "SHA-256 skema XSD",
     publishedLabel: "Tanggal terbit",
     generateTitle: "Buat batch ekspor XML BPPU",
     generateNotice:
-      "Satu batch XML hanya boleh berisi transaksi dari perusahaan yang sama, keluarga pajak yang sama (saat ini hanya PPH_UNIFIKASI_BPPU), masa pajak yang sama, dan versi templat resmi yang sama.",
+      "Satu batch XML hanya boleh berisi transaksi dari perusahaan yang sama, keluarga pajak yang sama (saat ini hanya PPh Unifikasi BPPU), masa pajak yang sama, dan versi templat resmi yang sama.",
     companyLabel: "Perusahaan pemotong",
     familyLabel: "Keluarga pajak",
     periodLabel: "Masa pajak (YYYY-MM)",
     selectAllLabel: "Pilih semua transaksi yang memenuhi syarat",
     eligibleTitle: "Transaksi disetujui yang memenuhi syarat",
     noEligible:
-      "Belum ada transaksi berstatus APPROVED/EXPORTED dengan snapshot aturan SME_APPROVED untuk filter perusahaan, keluarga, dan masa pajak ini.",
+      "Belum ada transaksi yang disetujui/diekspor dengan aturan pajak resmi untuk filter perusahaan, keluarga, dan masa pajak ini.",
     generateButton: "Buat XML Coretax (immutable)",
     generatedOk:
       "Batch XML berhasil dibuat dan divalidasi terhadap skema BPPU.",
@@ -39,19 +39,19 @@ export const exportMessages = {
       "Setelah Coretax memproses berkas, catat hasil resmi secara manual pada batch di bawah agar riwayat rekonsiliasi tetap akurat.",
     ],
     recordOutcomeTitle: "Catat hasil unggah manual Coretax",
-    outcomeSubmitted: "Diunggah manual ke Coretax (CORETAX_SUBMITTED)",
-    outcomeAccepted: "Diterima Coretax (CORETAX_ACCEPTED)",
-    outcomeRejected: "Ditolak Coretax (CORETAX_REJECTED)",
+    outcomeSubmitted: "Diunggah ke Coretax",
+    outcomeAccepted: "Diterima Coretax",
+    outcomeRejected: "Ditolak Coretax",
     coretaxRefLabel: "Nomor referensi / tanda terima Coretax (opsional)",
     outcomeNoteLabel: "Catatan validasi Coretax",
     recordOutcomeButton: "Simpan catatan hasil",
     outcomeRecordedOk: "Catatan hasil Coretax disimpan secara append-only.",
     adminTitle: "Registri Templat XML Resmi DJP (Superadmin)",
     adminIntro:
-      "Hanya templat yang sumber resmi, hash SHA-256, urutan elemen XSD, dan fixture uji-nya terverifikasi yang dapat diaktifkan (VERIFIED). Keluarga lain tetap gagal tertutup dengan TEMPLATE_UNVERIFIED.",
-    registerButton: "Daftarkan templat baru (UNVERIFIED)",
-    verifyButton: "Tandai VERIFIED",
-    retireButton: "Nonaktifkan (RETIRED)",
+      "Hanya templat yang sumber resmi, hash SHA-256, urutan elemen XSD, dan fixture uji-nya terverifikasi yang dapat diaktifkan (terverifikasi). Jenis pajak lain tetap diblokir sampai templatnya terverifikasi.",
+    registerButton: "Daftarkan templat baru",
+    verifyButton: "Tandai terverifikasi",
+    retireButton: "Hentikan",
     versionTagLabel: "Tag versi templat",
     sourceUrlLabel: "URL sumber resmi (*.pajak.go.id)",
     sourceLabelField: "Label sumber DJP",
@@ -61,19 +61,19 @@ export const exportMessages = {
       "Fixture uji terverifikasi terhadap referensi/konverter",
     templateSaved: "Registri templat XML diperbarui.",
     noPermission:
-      "Peran Anda tidak memiliki izin ekspor XML (khusus PREPARER, REVIEWER, atau APPROVER).",
+      "Peran Anda tidak memiliki izin ekspor XML (khusus Penyusun, Peninjau, atau Penyetuju).",
     errors: {
       TEMPLATE_UNVERIFIED:
-        "Diblokir (TEMPLATE_UNVERIFIED): Templat XML resmi untuk keluarga pajak ini belum diverifikasi atau tidak memiliki generator tervalidasi sumber.",
+        "Diblokir: templat XML resmi untuk keluarga pajak ini belum diverifikasi atau tidak memiliki generator tervalidasi sumber.",
       TEMPLATE_ALREADY_EXISTS:
         "Tag versi templat untuk keluarga pajak tersebut sudah terdaftar.",
       NOT_FOUND: "Data batch atau perusahaan tidak ditemukan.",
       NOT_APPROVED:
-        "Semua transaksi dalam batch harus berstatus APPROVED atau EXPORTED.",
+        "Semua transaksi dalam batch harus berstatus disetujui atau sudah diekspor.",
       SNAPSHOT_REQUIRED:
         "Transaksi tidak memiliki snapshot persetujuan terkunci untuk revisi saat ini.",
       PRODUCTION_RULE_UNVERIFIED:
-        "Transaksi menggunakan aturan NON_PRODUCTION_TEST / non-SME_APPROVED sehingga tidak dapat diekspor sebagai XML produksi.",
+        "Transaksi menggunakan aturan uji sintetis / belum disetujui ahli pajak sehingga tidak dapat diekspor sebagai XML produksi.",
       BATCH_SCOPE_MISMATCH:
         "Seluruh transaksi dalam satu batch XML harus berasal dari perusahaan, keluarga pajak, dan masa pajak yang sama.",
       COMPANY_TAX_ID_REQUIRED:
@@ -98,24 +98,24 @@ export const exportMessages = {
   en: {
     pageTitle: "Coretax XML Exports",
     pageIntro:
-      "Generate XML files only from APPROVED transactions with locked tax snapshots. SerenTax does not submit automatically to DJP; upload downloaded files manually to Coretax and record the outcome here.",
+      "Generate XML files only from approved transactions with locked tax snapshots. SerenTax does not submit automatically to DJP; upload downloaded files manually to Coretax and record the outcome here.",
     familyStatusTitle: "Official DJP template status per document family",
     availableBadge: "Available (source-verified template)",
-    unverifiedBadge: "Blocked (TEMPLATE_UNVERIFIED)",
+    unverifiedBadge: "Blocked (template not verified)",
     sourceCitationLabel: "Official DJP source",
     sourceShaLabel: "Source SHA-256",
     schemaShaLabel: "XSD schema SHA-256",
     publishedLabel: "Published date",
     generateTitle: "Generate BPPU XML export batch",
     generateNotice:
-      "Each XML batch must share the same company, the same tax family (currently only PPH_UNIFIKASI_BPPU), the same tax period, and the same verified template version.",
+      "Each XML batch must share the same company, the same tax family (currently only PPh Unification BPPU), the same tax period, and the same verified template version.",
     companyLabel: "Withholding company",
     familyLabel: "Tax family",
     periodLabel: "Tax period (YYYY-MM)",
     selectAllLabel: "Select all eligible transactions",
     eligibleTitle: "Eligible approved transactions",
     noEligible:
-      "No APPROVED or EXPORTED transactions with an SME_APPROVED snapshot match this company, tax family, and tax period yet.",
+      "No approved or exported transactions under an official tax rule match this company, tax family, and tax period yet.",
     generateButton: "Generate Coretax XML (immutable)",
     generatedOk: "XML batch generated and validated against the BPPU schema.",
     historyTitle: "Immutable export batch history",
@@ -132,19 +132,19 @@ export const exportMessages = {
       "Once Coretax finishes validating your upload, record the official outcome below for reconciliation.",
     ],
     recordOutcomeTitle: "Record manual Coretax outcome",
-    outcomeSubmitted: "Submitted manually to Coretax (CORETAX_SUBMITTED)",
-    outcomeAccepted: "Accepted by Coretax (CORETAX_ACCEPTED)",
-    outcomeRejected: "Rejected by Coretax (CORETAX_REJECTED)",
+    outcomeSubmitted: "Uploaded to Coretax",
+    outcomeAccepted: "Accepted by Coretax",
+    outcomeRejected: "Rejected by Coretax",
     coretaxRefLabel: "Coretax receipt / reference number (optional)",
     outcomeNoteLabel: "Coretax validation note",
     recordOutcomeButton: "Save outcome record",
     outcomeRecordedOk: "Coretax outcome recorded append-only.",
     adminTitle: "Official DJP XML Template Registry (Superadmin)",
     adminIntro:
-      "Only templates with verified official DJP source URL, SHA-256 checksum, derived XSD element ordering, and passing fixture tests may be marked VERIFIED. Unsupported families fail closed with TEMPLATE_UNVERIFIED.",
-    registerButton: "Register template (UNVERIFIED)",
-    verifyButton: "Mark VERIFIED",
-    retireButton: "Retire (RETIRED)",
+      "Only templates with verified official DJP source URL, SHA-256 checksum, derived XSD element ordering, and passing fixture tests may be marked verified. Other tax families stay blocked until their template is verified.",
+    registerButton: "Register template",
+    verifyButton: "Mark verified",
+    retireButton: "Retire",
     versionTagLabel: "Template version tag",
     sourceUrlLabel: "Official source URL (*.pajak.go.id)",
     sourceLabelField: "DJP source label",
@@ -154,19 +154,19 @@ export const exportMessages = {
       "Fixture suite verified against official reference/converter",
     templateSaved: "XML template registry updated.",
     noPermission:
-      "Your workspace role cannot generate or record XML exports (PREPARER, REVIEWER, or APPROVER required).",
+      "Your workspace role cannot generate or record XML exports (Preparer, Reviewer, or Approver required).",
     errors: {
       TEMPLATE_UNVERIFIED:
-        "Blocked (TEMPLATE_UNVERIFIED): Official XML template for this tax family is unverified or has no source-verified serializer.",
+        "Blocked: official XML template for this tax family is unverified or has no source-verified serializer.",
       TEMPLATE_ALREADY_EXISTS:
         "That template version tag already exists for this tax family.",
       NOT_FOUND: "Export batch or company was not found.",
       NOT_APPROVED:
-        "Every transaction in an export batch must be APPROVED or EXPORTED.",
+        "Every transaction in an export batch must be approved or already exported.",
       SNAPSHOT_REQUIRED:
         "Transaction is missing an immutable approval snapshot for its current version.",
       PRODUCTION_RULE_UNVERIFIED:
-        "Transaction was approved under a NON_PRODUCTION_TEST / unapproved rule and cannot produce production XML.",
+        "Transaction was approved under a synthetic test or unapproved rule and cannot produce production XML.",
       BATCH_SCOPE_MISMATCH:
         "All transactions in a batch must belong to the same company, tax family, and tax period.",
       COMPANY_TAX_ID_REQUIRED:

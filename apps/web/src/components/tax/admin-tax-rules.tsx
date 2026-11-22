@@ -9,6 +9,8 @@ import {
   FlaskConical,
   PencilLine,
 } from "lucide-react";
+import { codeLabel, codeOptions } from "@/i18n/codes";
+import { CodeBadge } from "@/components/ui/code-badge";
 import type { Locale } from "@/i18n/messages";
 import { taxMessages } from "@/i18n/tax";
 import { intakeMessages } from "@/i18n/intake";
@@ -33,7 +35,7 @@ import {
   TextInput,
 } from "@/components/ui/field";
 import { MenuItem, MenuSeparator } from "@/components/ui/menu";
-import { Badge, Notice } from "@/components/ui/status";
+import { Notice } from "@/components/ui/status";
 import { useToast } from "@/components/ui/toast";
 import {
   FormBody,
@@ -83,28 +85,8 @@ function ruleError(error: unknown, locale: Locale) {
   return formatFailure(error, locale);
 }
 
-function StatusPill({
-  status,
-  locale,
-}: {
-  status: TaxRuleStatus;
-  locale: Locale;
-}) {
-  const label = taxMessages[locale].ruleStatuses[status];
-  if (status === "SME_APPROVED")
-    return (
-      <Badge tone="solid" dot>
-        {label}
-      </Badge>
-    );
-  if (status === "RETIRED") return <Badge tone="muted">{label}</Badge>;
-  if (status === "NON_PRODUCTION_TEST")
-    return (
-      <Badge tone="neutral" dot>
-        {label}
-      </Badge>
-    );
-  return <Badge tone="outline">{label}</Badge>;
+function StatusPill({ status }: { status: TaxRuleStatus; locale?: Locale }) {
+  return <CodeBadge domain="taxRuleStatus" code={status} />;
 }
 
 const setStatus = (
@@ -172,6 +154,8 @@ export function TaxRulesList({ locale }: { locale: Locale }) {
         label: t.taxFamilyLabel,
         type: "enum",
         value: (r) => r.taxFamily,
+        display: (r) => codeLabel(locale, "taxFamily", r.taxFamily),
+        options: codeOptions(locale, "taxFamily", allTaxFamilies),
         filterable: true,
         groupable: true,
       },
@@ -223,7 +207,11 @@ export function TaxRulesList({ locale }: { locale: Locale }) {
     {
       key: "family",
       header: t.taxFamilyLabel,
-      cell: (r) => <span className="font-mono text-xs">{r.taxFamily}</span>,
+      cell: (r) => (
+        <span className="text-xs">
+          {codeLabel(locale, "taxFamily", r.taxFamily)}
+        </span>
+      ),
       hideBelow: "xl",
     },
     {
@@ -266,7 +254,11 @@ export function TaxRulesList({ locale }: { locale: Locale }) {
       label: v.archive,
       icon: <Archive />,
       visible: (rows) => rows.some((r) => !isArchived(r)),
-      confirm: { title: v.confirmArchiveTitle, body: v.confirmArchiveBody },
+      confirm: {
+        title: v.confirmArchiveTitle,
+        body: v.confirmArchiveBody,
+        tone: "warning",
+      },
       run: async (rows) => {
         try {
           for (const r of rows.filter((r) => !isArchived(r)))
@@ -466,7 +458,11 @@ export function TaxRuleForm({
             buttons={
               rule.catalogStatus !== "SME_APPROVED" &&
               rule.catalogStatus !== "RETIRED" ? (
-                <Button type="button" onClick={() => setApproveDialog(true)}>
+                <Button
+                  type="button"
+                  variant="success"
+                  onClick={() => setApproveDialog(true)}
+                >
                   <BadgeCheck aria-hidden="true" />
                   <span>{t.ruleStatuses.SME_APPROVED}</span>
                 </Button>
@@ -540,39 +536,75 @@ export function TaxRuleForm({
           <p className="text-base">{rule.name}</p>
           <div className="grid gap-x-12 gap-y-6 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              <FormField label={t.taxFamilyLabel} layout="inline">
-                <ReadValue mono>{rule.taxFamily}</ReadValue>
+              <FormField
+                field="taxRule.taxFamily"
+                label={t.taxFamilyLabel}
+                layout="inline"
+              >
+                <ReadValue>
+                  {codeLabel(locale, "taxFamily", rule.taxFamily)}
+                </ReadValue>
               </FormField>
-              <FormField label={intake.documentType} layout="inline">
+              <FormField
+                field="taxRule.documentType"
+                label={intake.documentType}
+                layout="inline"
+              >
                 <ReadValue>
                   {intake.documentTypes[
                     rule.documentType as keyof typeof intake.documentTypes
                   ] ?? rule.documentType}
                 </ReadValue>
               </FormField>
-              <FormField label={t.objectCodeLabel} layout="inline">
+              <FormField
+                field="taxRule.objectCode"
+                label={t.objectCodeLabel}
+                layout="inline"
+              >
                 <ReadValue mono>{rule.objectCode}</ReadValue>
               </FormField>
-              <FormField label={t.citationLabel} layout="inline">
+              <FormField
+                field="taxRule.sourceCitation"
+                label={t.citationLabel}
+                layout="inline"
+              >
                 <ReadValue>{rule.sourceCitation}</ReadValue>
               </FormField>
             </FieldGroup>
             <FieldGroup title={t.rateLabel}>
-              <FormField label={t.rateLabel} layout="inline">
+              <FormField
+                field="taxRule.rate"
+                label={t.rateLabel}
+                layout="inline"
+              >
                 <ReadValue mono>
                   {formatRationalRate(rule.rateNumerator, rule.rateDenominator)}{" "}
                   ({rule.rateNumerator}/{rule.rateDenominator})
                 </ReadValue>
               </FormField>
-              <FormField label={t.roundingLabel} layout="inline">
-                <ReadValue>{t.roundingModes[rule.roundingMode]}</ReadValue>
+              <FormField
+                field="taxRule.roundingMode"
+                label={t.roundingLabel}
+                layout="inline"
+              >
+                <ReadValue>
+                  {codeLabel(locale, "roundingMode", rule.roundingMode)}
+                </ReadValue>
               </FormField>
-              <FormField label={t.effectiveLabel} layout="inline">
+              <FormField
+                field="taxRule.effective"
+                label={t.effectiveLabel}
+                layout="inline"
+              >
                 <ReadValue mono>
                   {rule.effectiveFrom} → {rule.effectiveTo ?? "…"}
                 </ReadValue>
               </FormField>
-              <FormField label={t.smeReviewerLabel} layout="inline">
+              <FormField
+                field="taxRule.smeReviewedBy"
+                label={t.smeReviewerLabel}
+                layout="inline"
+              >
                 <ReadValue>{rule.smeReviewedBy}</ReadValue>
               </FormField>
             </FieldGroup>
@@ -585,14 +617,19 @@ export function TaxRuleForm({
           disabled={saving}
         >
           {error && (
-            <Notice tone="strong" role="alert">
+            <Notice tone="danger" role="alert">
               {error}
             </Notice>
           )}
           <Notice>{t.adminRulesIntro}</Notice>
           <div className="grid gap-x-12 gap-y-5 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              <FormField label={t.codeLabel} required layout="inline">
+              <FormField
+                field="taxRule.code"
+                label={t.codeLabel}
+                required
+                layout="inline"
+              >
                 <TextInput
                   value={draft.code}
                   onChange={(e) => set({ code: e.target.value.toUpperCase() })}
@@ -601,7 +638,12 @@ export function TaxRuleForm({
                   autoFocus
                 />
               </FormField>
-              <FormField label={t.versionLabel} required layout="inline">
+              <FormField
+                field="taxRule.version"
+                label={t.versionLabel}
+                required
+                layout="inline"
+              >
                 <TextInput
                   type="number"
                   min={1}
@@ -611,14 +653,24 @@ export function TaxRuleForm({
                   className="w-28"
                 />
               </FormField>
-              <FormField label={t.nameLabel} required layout="inline">
+              <FormField
+                field="taxRule.name"
+                label={t.nameLabel}
+                required
+                layout="inline"
+              >
                 <TextInput
                   value={draft.name}
                   onChange={(e) => set({ name: e.target.value })}
                   maxLength={150}
                 />
               </FormField>
-              <FormField label={t.taxFamilyLabel} required layout="inline">
+              <FormField
+                field="taxRule.taxFamily"
+                label={t.taxFamilyLabel}
+                required
+                layout="inline"
+              >
                 <Combobox
                   value={draft.taxFamily}
                   onChange={(value) => value && set({ taxFamily: value })}
@@ -626,7 +678,12 @@ export function TaxRuleForm({
                   labels={labels}
                 />
               </FormField>
-              <FormField label={intake.documentType} required layout="inline">
+              <FormField
+                field="taxRule.documentType"
+                label={intake.documentType}
+                required
+                layout="inline"
+              >
                 <Combobox
                   value={draft.documentType}
                   onChange={(value) =>
@@ -640,7 +697,12 @@ export function TaxRuleForm({
                   labels={labels}
                 />
               </FormField>
-              <FormField label={t.objectCodeLabel} required layout="inline">
+              <FormField
+                field="taxRule.objectCode"
+                label={t.objectCodeLabel}
+                required
+                layout="inline"
+              >
                 <TextInput
                   value={draft.objectCode}
                   onChange={(e) =>
@@ -653,6 +715,7 @@ export function TaxRuleForm({
             </FieldGroup>
             <FieldGroup title={t.rateLabel}>
               <FormField
+                field="taxRule.rateNumerator"
                 label={t.numeratorLabel}
                 required
                 layout="inline"
@@ -666,7 +729,12 @@ export function TaxRuleForm({
                   className="w-32"
                 />
               </FormField>
-              <FormField label={t.denominatorLabel} required layout="inline">
+              <FormField
+                field="taxRule.rateDenominator"
+                label={t.denominatorLabel}
+                required
+                layout="inline"
+              >
                 <TextInput
                   type="number"
                   min={1}
@@ -675,7 +743,11 @@ export function TaxRuleForm({
                   className="w-32"
                 />
               </FormField>
-              <FormField label={t.roundingLabel} layout="inline">
+              <FormField
+                field="taxRule.roundingMode"
+                label={t.roundingLabel}
+                layout="inline"
+              >
                 <Combobox
                   value={draft.roundingMode}
                   onChange={(value) =>
@@ -688,14 +760,23 @@ export function TaxRuleForm({
                   labels={labels}
                 />
               </FormField>
-              <FormField label={t.effectiveFromLabel} required layout="inline">
+              <FormField
+                field="taxRule.effectiveFrom"
+                label={t.effectiveFromLabel}
+                required
+                layout="inline"
+              >
                 <TextInput
                   type="date"
                   value={draft.effectiveFrom}
                   onChange={(e) => set({ effectiveFrom: e.target.value })}
                 />
               </FormField>
-              <FormField label={t.effectiveToLabel} layout="inline">
+              <FormField
+                field="taxRule.effectiveTo"
+                label={t.effectiveToLabel}
+                layout="inline"
+              >
                 <TextInput
                   type="date"
                   value={draft.effectiveTo}
@@ -705,14 +786,24 @@ export function TaxRuleForm({
             </FieldGroup>
           </div>
           <FieldGroup title={t.citationLabel} columns={2}>
-            <FormField label={t.citationLabel} required layout="inline">
+            <FormField
+              field="taxRule.sourceCitation"
+              label={t.citationLabel}
+              required
+              layout="inline"
+            >
               <TextInput
                 value={draft.sourceCitation}
                 onChange={(e) => set({ sourceCitation: e.target.value })}
                 maxLength={300}
               />
             </FormField>
-            <FormField label={intake.status} required layout="inline">
+            <FormField
+              field="taxRule.catalogStatus"
+              label={intake.status}
+              required
+              layout="inline"
+            >
               <Combobox
                 value={draft.catalogStatus}
                 onChange={(value) =>
@@ -726,7 +817,12 @@ export function TaxRuleForm({
               />
             </FormField>
             {draft.catalogStatus === "SME_APPROVED" && (
-              <FormField label={t.smeReviewerLabel} required layout="inline">
+              <FormField
+                field="taxRule.smeReviewedBy"
+                label={t.smeReviewerLabel}
+                required
+                layout="inline"
+              >
                 <TextInput
                   value={draft.smeReviewedBy}
                   onChange={(e) => set({ smeReviewedBy: e.target.value })}
@@ -779,7 +875,11 @@ export function TaxRuleForm({
           </>
         }
       >
-        <FormField label={t.smeReviewerLabel} required>
+        <FormField
+          field="taxRule.smeReviewedBy"
+          label={t.smeReviewerLabel}
+          required
+        >
           <TextInput
             value={reviewer}
             onChange={(e) => setReviewer(e.target.value)}

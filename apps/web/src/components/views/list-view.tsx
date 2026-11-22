@@ -14,6 +14,9 @@ import { fmt, type ViewMessages } from "@/i18n/views";
 import { cn } from "@/lib/utils";
 import type { SortState } from "./search";
 
+/** Standard rows per page for every list view (14_UI_STANDARDS.md). */
+export const LIST_PAGE_SIZE = 50;
+
 export type Column<R> = {
   key: string;
   header: ReactNode;
@@ -26,7 +29,7 @@ export type Column<R> = {
   hideBelow?: "md" | "lg" | "xl";
   /** Shown as the title of the mobile card. */
   primary?: boolean;
-  /** Group-row aggregate (e.g. a sum). */
+  /** Aggregate (e.g. a sum): shown bold in group rows and the totals footer. */
   aggregate?: (records: R[]) => ReactNode;
   width?: string;
 };
@@ -101,6 +104,7 @@ export function ListView<R>({
   const ids = records.map(getId);
   const allSelected = ids.length > 0 && ids.every((id) => selected.has(id));
   const someSelected = ids.some((id) => selected.has(id));
+  const hasTotals = columns.some((column) => column.aggregate);
   const hideClass = (c: Column<R>) =>
     c.hideBelow === "md"
       ? "hidden md:table-cell"
@@ -282,7 +286,7 @@ export function ListView<R>({
             {index === 0
               ? label
               : column.aggregate && (
-                  <span className="font-semibold">
+                  <span className="font-bold tabular-nums">
                     {column.aggregate(group.rows)}
                   </span>
                 )}
@@ -295,7 +299,8 @@ export function ListView<R>({
   return (
     <>
       {/* Table (md and up) */}
-      <div className="scroll-thin hidden overflow-x-auto md:block">
+      {/* Bounded scroll area: the header and totals stay visible. */}
+      <div className="scroll-thin hidden max-h-[calc(100dvh-16rem)] min-h-48 overflow-auto md:block">
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-surface-2">
             <tr className="border-b">
@@ -370,6 +375,29 @@ export function ListView<R>({
                 ])
               : records.map(row)}
           </tbody>
+          {hasTotals && records.length > 0 && (
+            <tfoot className="sticky bottom-0 z-10 bg-surface-2">
+              <tr className="border-t-2 border-border-strong">
+                {selectable && <td className="w-10 pl-4" />}
+                {columns.map((column, index) => (
+                  <td
+                    key={column.key}
+                    className={cn(
+                      "px-3 py-2.5 text-sm font-bold whitespace-nowrap tabular-nums",
+                      alignClass(column),
+                      hideClass(column),
+                    )}
+                  >
+                    {column.aggregate
+                      ? column.aggregate(records)
+                      : index === 0
+                        ? v.total
+                        : null}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
       {/* Cards (mobile) */}
@@ -380,6 +408,21 @@ export function ListView<R>({
               ...(collapsed.has(group.key) ? [] : group.rows.map(card)),
             ])
           : records.map(card)}
+        {hasTotals && records.length > 0 && (
+          <li className="flex flex-wrap justify-between gap-x-4 gap-y-1 border-t-2 border-border-strong bg-surface-2 px-4 py-3 text-sm font-bold">
+            <span>{v.total}</span>
+            {columns
+              .filter((column) => column.aggregate)
+              .map((column) => (
+                <span key={column.key} className="tabular-nums">
+                  <span className="font-medium text-muted-foreground">
+                    {column.header}:{" "}
+                  </span>
+                  {column.aggregate!(records)}
+                </span>
+              ))}
+          </li>
+        )}
       </ul>
     </>
   );

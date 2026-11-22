@@ -1,23 +1,25 @@
 import type { ComponentProps, ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Info, LoaderCircle, TriangleAlert } from "lucide-react";
+import { CircleCheck, Info, LoaderCircle, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const badgeVariants = cva(
-  "inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
+  "inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap",
   {
     variants: {
       tone: {
-        neutral: "bg-muted text-foreground",
-        solid: "bg-foreground text-background",
-        outline: "border border-border-strong text-foreground",
-        muted:
-          "border border-dashed border-border-strong text-muted-foreground",
+        gray: "bg-muted text-muted-foreground",
+        blue: "bg-info-soft text-info-fg",
+        green: "bg-success-soft text-success-fg",
+        amber: "bg-warning-soft text-warning-fg",
+        red: "bg-danger-soft text-danger-fg",
+        violet: "bg-violet-soft text-violet-fg",
       },
     },
-    defaultVariants: { tone: "neutral" },
+    defaultVariants: { tone: "gray" },
   },
 );
+export type BadgeTone = NonNullable<VariantProps<typeof badgeVariants>["tone"]>;
 
 export function Badge({
   tone,
@@ -51,7 +53,7 @@ export function StatusBadge({
   active?: boolean;
 }) {
   return (
-    <Badge tone={active ? "solid" : "outline"} dot>
+    <Badge tone={active ? "green" : "gray"} dot>
       {children}
     </Badge>
   );
@@ -82,38 +84,40 @@ export function Notice({
   className,
   role,
 }: {
-  tone?: "info" | "warning" | "strong";
+  tone?: "info" | "success" | "warning" | "danger";
   title?: ReactNode;
   children?: ReactNode;
   className?: string;
   role?: "status" | "alert";
 }) {
-  const Icon = tone === "info" ? Info : TriangleAlert;
+  const kind = tone;
+  const Icon =
+    kind === "success" ? CircleCheck : kind === "info" ? Info : TriangleAlert;
   return (
     <div
       role={role}
       className={cn(
         "flex gap-3 rounded-lg border px-4 py-3 text-sm",
-        tone === "info" && "border-border bg-surface-2",
-        tone === "warning" && "border-dashed border-border-strong bg-surface-2",
-        tone === "strong" && "border-foreground bg-foreground text-background",
+        kind === "info" && "border-info/25 bg-info-soft",
+        kind === "success" && "border-success/25 bg-success-soft",
+        kind === "warning" && "border-warning/30 bg-warning-soft",
+        kind === "danger" && "border-danger/30 bg-danger-soft",
         className,
       )}
     >
-      <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-      <div className="min-w-0 space-y-1 leading-6">
-        {title && <p className="font-semibold">{title}</p>}
-        {children && (
-          <div
-            className={cn(
-              tone === "strong"
-                ? "text-background/85"
-                : "text-muted-foreground",
-            )}
-          >
-            {children}
-          </div>
+      <Icon
+        aria-hidden="true"
+        className={cn(
+          "mt-0.5 size-4 shrink-0",
+          kind === "info" && "text-info",
+          kind === "success" && "text-success",
+          kind === "warning" && "text-warning",
+          kind === "danger" && "text-danger",
         )}
+      />
+      <div className="min-w-0 space-y-1 leading-6">
+        {title && <p className="font-semibold text-foreground">{title}</p>}
+        {children && <div className="text-foreground/80">{children}</div>}
       </div>
     </div>
   );

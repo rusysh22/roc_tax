@@ -12,7 +12,7 @@ export const taxMessages = {
     panelNotice:
       "Mesin aturan bersifat deterministik dan berversi tanggal berlaku. Tidak ada kode objek atau tarif pajak Indonesia yang diisikan otomatis tanpa katalog yang disetujui ahli pajak (SME).",
     nonProductionBanner:
-      "PERINGATAN NON_PRODUCTION: Evaluasi ini menggunakan aturan uji sintetis (NON_PRODUCTION_TEST). Persetujuan pajak produksi tetap diblokir sampai katalog aturan resmi disetujui ahli pajak.",
+      "PERINGATAN UJI: Evaluasi ini menggunakan aturan uji sintetis. Persetujuan pajak produksi tetap diblokir sampai katalog aturan resmi disetujui ahli pajak.",
     pph21Requirement:
       "Keluarga PPh 21 (BP21/BPMP/BPA1/BPA2) memerlukan referensi data penggajian/riwayat penghasilan dan tidak dapat disimpulkan dari satu invoice saja.",
     pph26Requirement:
@@ -47,9 +47,9 @@ export const taxMessages = {
     rateLabel: "Tarif",
     roundingLabel: "Pembulatan",
     roundingModes: {
-      HALF_UP: "HALF_UP (pembulatan standar)",
-      FLOOR: "FLOOR (pembulatan ke bawah)",
-      CEIL: "CEIL (pembulatan ke atas)",
+      HALF_UP: "Pembulatan standar (setengah ke atas)",
+      FLOOR: "Pembulatan ke bawah",
+      CEIL: "Pembulatan ke atas",
     } satisfies Record<TaxRoundingMode, string>,
     ruleLabel: "Aturan & versi",
     citationLabel: "Dasar peraturan / sumber",
@@ -64,7 +64,7 @@ export const taxMessages = {
     ruleStatuses: {
       DRAFT: "Draf",
       SME_APPROVED: "Disetujui SME (Produksi)",
-      NON_PRODUCTION_TEST: "NON_PRODUCTION_TEST (Uji sintetis)",
+      NON_PRODUCTION_TEST: "Uji sintetis (non-produksi)",
       RETIRED: "Dihentikan",
     } satisfies Record<TaxRuleStatus, string>,
     adminRulesTitle: "Katalog aturan pajak berversi (Superadmin)",
@@ -77,7 +77,7 @@ export const taxMessages = {
     effectiveToLabel: "Berlaku sampai (opsional)",
     numeratorLabel: "Pembilang tarif (mis. 2 untuk 2%)",
     denominatorLabel: "Penyebut tarif (mis. 100 untuk 2%)",
-    smeReviewerLabel: "Peninjau SME (wajib untuk SME_APPROVED)",
+    smeReviewerLabel: "Peninjau ahli pajak (wajib untuk status disetujui)",
     requireIdentityLabel: "Wajibkan identitas pajak lawan transaksi",
     requirePayrollLabel: "Wajibkan bukti penggajian (PPh 21)",
     requireTreatyLabel: "Wajibkan dokumen traktat/SKD (PPh 26)",
@@ -95,11 +95,11 @@ export const taxMessages = {
       COUNTERPARTY_IDENTITY_REQUIRED:
         "Aturan ini mewajibkan lawan transaksi memiliki identitas pajak (NPWP/NIK/TIN).",
       RULE_NOT_SME_APPROVED:
-        "Aturan yang cocok belum berstatus SME_APPROVED (hanya uji NON_PRODUCTION); persetujuan produksi diblokir.",
+        "Aturan yang cocok belum disetujui ahli pajak (hanya aturan uji); persetujuan produksi diblokir.",
     } satisfies Record<TaxBlockerCode, string>,
     errors: {
       SME_REVIEW_REQUIRED:
-        "Nama peninjau ahli pajak (SME) wajib diisi untuk status SME_APPROVED.",
+        "Nama peninjau ahli pajak (SME) wajib diisi untuk status disetujui ahli pajak.",
       INVALID_EFFECTIVE_RANGE:
         "Tanggal berakhir berlaku tidak boleh lebih awal dari tanggal mulai berlaku.",
       INVALID_TAX_RATE:
@@ -110,7 +110,7 @@ export const taxMessages = {
       EVALUATION_HAS_BLOCKERS:
         "Masih terdapat penghambat validasi pada evaluasi terakhir.",
       PRODUCTION_RULE_UNVERIFIED:
-        "Persetujuan produksi diblokir sampai aturan pajak berstatus SME_APPROVED tersedia dan tervalidasi.",
+        "Persetujuan produksi diblokir sampai aturan pajak yang disetujui ahli pajak tersedia dan tervalidasi.",
       SELF_APPROVAL_BLOCKED:
         "Kebijakan pemisahan tugas menolak persetujuan oleh pembuat, pengaju, atau peninjau transaksi yang sama.",
       SOLE_USER_ACK_REQUIRED:
@@ -128,7 +128,7 @@ export const taxMessages = {
     panelNotice:
       "The rule engine is deterministic and effective-dated. No Indonesian tax codes or statutory tariffs are seeded without Tax SME approval.",
     nonProductionBanner:
-      "NON_PRODUCTION WARNING: This evaluation used a synthetic fixture rule (NON_PRODUCTION_TEST). Production tax approval stays blocked until an SME-approved catalog exists.",
+      "TEST WARNING: This evaluation used a synthetic test rule. Production tax approval stays blocked until an SME-approved catalog exists.",
     pph21Requirement:
       "PPh 21 families (BP21/BPMP/BPA1/BPA2) require separate payroll/income history references and cannot be inferred from a single invoice.",
     pph26Requirement:
@@ -163,9 +163,9 @@ export const taxMessages = {
     rateLabel: "Rate",
     roundingLabel: "Rounding",
     roundingModes: {
-      HALF_UP: "HALF_UP (standard half-up)",
-      FLOOR: "FLOOR (round down)",
-      CEIL: "CEIL (round up)",
+      HALF_UP: "Standard rounding (half up)",
+      FLOOR: "Round down",
+      CEIL: "Round up",
     } satisfies Record<TaxRoundingMode, string>,
     ruleLabel: "Rule & version",
     citationLabel: "Source citation",
@@ -180,7 +180,7 @@ export const taxMessages = {
     ruleStatuses: {
       DRAFT: "Draft",
       SME_APPROVED: "SME Approved (Production)",
-      NON_PRODUCTION_TEST: "NON_PRODUCTION_TEST (Synthetic fixture)",
+      NON_PRODUCTION_TEST: "Synthetic test (non-production)",
       RETIRED: "Retired",
     } satisfies Record<TaxRuleStatus, string>,
     adminRulesTitle: "Versioned tax rule catalog (Superadmin)",
@@ -193,7 +193,7 @@ export const taxMessages = {
     effectiveToLabel: "Effective to (optional)",
     numeratorLabel: "Rate numerator (e.g. 2 for 2%)",
     denominatorLabel: "Rate denominator (e.g. 100 for 2%)",
-    smeReviewerLabel: "SME reviewer name (required for SME_APPROVED)",
+    smeReviewerLabel: "Tax expert reviewer (required for approved status)",
     requireIdentityLabel: "Require counterparty tax identity",
     requirePayrollLabel: "Require payroll evidence (PPh 21)",
     requireTreatyLabel: "Require treaty/SKD evidence (PPh 26)",
@@ -211,11 +211,11 @@ export const taxMessages = {
       COUNTERPARTY_IDENTITY_REQUIRED:
         "This rule requires the counterparty to have a tax identity (NPWP/NIK/TIN).",
       RULE_NOT_SME_APPROVED:
-        "The matched rule is not SME_APPROVED (NON_PRODUCTION test fixture); production approval is blocked.",
+        "The matched rule is not approved by a tax expert (test rule only); production approval is blocked.",
     } satisfies Record<TaxBlockerCode, string>,
     errors: {
       SME_REVIEW_REQUIRED:
-        "SME reviewer identity is required before setting status to SME_APPROVED.",
+        "SME reviewer identity is required before setting the status to approved.",
       INVALID_EFFECTIVE_RANGE:
         "Effective-to date cannot be earlier than effective-from date.",
       INVALID_TAX_RATE:
@@ -227,7 +227,7 @@ export const taxMessages = {
       EVALUATION_HAS_BLOCKERS:
         "The latest tax evaluation still has unresolved blockers.",
       PRODUCTION_RULE_UNVERIFIED:
-        "Production approval is blocked until an SME_APPROVED rule catalog exists and validates.",
+        "Production approval is blocked until a tax-expert-approved rule catalog exists and validates.",
       SELF_APPROVAL_BLOCKED:
         "Segregation-of-duties policy prevents the creator, submitter, or reviewer from approving their own record.",
       SOLE_USER_ACK_REQUIRED:

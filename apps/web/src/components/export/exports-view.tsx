@@ -7,6 +7,8 @@ import {
   FileSpreadsheet,
   ShieldCheck,
 } from "lucide-react";
+import { codeLabel } from "@/i18n/codes";
+import { CodeBadge } from "@/components/ui/code-badge";
 import type { Locale } from "@/i18n/messages";
 import { exportMessages } from "@/i18n/exports";
 import { intakeMessages } from "@/i18n/intake";
@@ -26,7 +28,7 @@ import {
   TextArea,
   TextInput,
 } from "@/components/ui/field";
-import { Badge, Notice } from "@/components/ui/status";
+import { Notice } from "@/components/ui/status";
 import { useToast } from "@/components/ui/toast";
 import {
   Chatter,
@@ -39,6 +41,8 @@ import { NoWorkspace, comboLabels } from "@/components/views/page-state";
 import type { Column } from "@/components/views/list-view";
 import type { ViewField } from "@/components/views/search";
 import { useResource } from "@/components/views/use-resource";
+import { PagedFooter, usePaged } from "@/components/views/paged";
+import { fieldInfo } from "@/i18n/fields";
 import { Wizard } from "@/components/views/wizard";
 import {
   ApiFailure,
@@ -140,36 +144,12 @@ function outcomeLabel(locale: Locale, outcome: CoretaxOutcomeStatus | null) {
 }
 
 function OutcomeBadge({
-  locale,
   outcome,
 }: {
-  locale: Locale;
+  locale?: Locale;
   outcome: CoretaxOutcomeStatus | null;
 }) {
-  // Short visible label; the full label (with the technical code) is the tooltip.
-  const full = outcomeLabel(locale, outcome);
-  const label = (
-    <span title={full}>{full.replace(/\s*\([^)]*\)\s*$/, "")}</span>
-  );
-  if (outcome === "CORETAX_ACCEPTED")
-    return (
-      <Badge tone="solid" dot>
-        {label}
-      </Badge>
-    );
-  if (outcome === "CORETAX_REJECTED")
-    return (
-      <Badge tone="muted" dot>
-        {label}
-      </Badge>
-    );
-  if (outcome === "CORETAX_SUBMITTED")
-    return (
-      <Badge tone="neutral" dot>
-        {label}
-      </Badge>
-    );
-  return <Badge tone="outline">{label}</Badge>;
+  return <CodeBadge domain="coretaxOutcome" code={outcome ?? "NONE"} />;
 }
 
 export function ExportsList({ locale }: { locale: Locale }) {
@@ -406,12 +386,17 @@ function ExportWizard({
   const scope = (
     <div className="space-y-6">
       {error && (
-        <Notice tone="strong" role="alert">
+        <Notice tone="danger" role="alert">
           {error}
         </Notice>
       )}
       <FieldGroup>
-        <FormField label={t.companyLabel} required layout="inline">
+        <FormField
+          field="export.companyId"
+          label={t.companyLabel}
+          required
+          layout="inline"
+        >
           <Combobox
             value={company}
             onChange={(value) => {
@@ -426,7 +411,12 @@ function ExportWizard({
             labels={labels}
           />
         </FormField>
-        <FormField label={t.familyLabel} required layout="inline">
+        <FormField
+          field="export.taxFamily"
+          label={t.familyLabel}
+          required
+          layout="inline"
+        >
           <Combobox
             value={taxFamily}
             onChange={(value) => {
@@ -443,7 +433,12 @@ function ExportWizard({
             labels={labels}
           />
         </FormField>
-        <FormField label={t.periodLabel} required layout="inline">
+        <FormField
+          field="export.taxPeriod"
+          label={t.periodLabel}
+          required
+          layout="inline"
+        >
           <TextInput
             type="month"
             value={taxPeriod}
@@ -477,7 +472,7 @@ function ExportWizard({
   const pick = (
     <div className="space-y-4">
       {error && (
-        <Notice tone="strong" role="alert">
+        <Notice tone="danger" role="alert">
           {error}
         </Notice>
       )}
@@ -632,6 +627,7 @@ export function ExportBatchForm({
     [batchId],
   );
   const batch = data?.batches.find((b) => b.id === batchId) ?? null;
+  const itemsPage = usePaged(batch?.items ?? []);
   const canExport = data ? can(data.role, "tax.export") : false;
   const [dialog, setDialog] = useState(false);
   const [outcome, setOutcome] =
@@ -750,7 +746,11 @@ export function ExportBatchForm({
           </SheetTitle>
           <div className="grid gap-x-12 gap-y-6 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              <FormField label={t.companyLabel} layout="inline">
+              <FormField
+                field="export.companyId"
+                label={t.companyLabel}
+                layout="inline"
+              >
                 <ReadValue>
                   <Link
                     className="hover:underline"
@@ -760,33 +760,59 @@ export function ExportBatchForm({
                   </Link>
                 </ReadValue>
               </FormField>
-              <FormField label={t.familyLabel} layout="inline">
-                <ReadValue mono>{batch.taxFamily}</ReadValue>
+              <FormField
+                field="export.taxFamily"
+                label={t.familyLabel}
+                layout="inline"
+              >
+                <ReadValue>
+                  {codeLabel(locale, "taxFamily", batch.taxFamily)}
+                </ReadValue>
               </FormField>
-              <FormField label={t.periodLabel} layout="inline">
+              <FormField
+                field="export.taxPeriod"
+                label={t.periodLabel}
+                layout="inline"
+              >
                 <ReadValue mono>{batch.taxPeriod}</ReadValue>
               </FormField>
-              <FormField label={t.versionLabel} layout="inline">
+              <FormField
+                field="export.version"
+                label={t.versionLabel}
+                layout="inline"
+              >
                 <ReadValue>
                   v{batch.exportVersion} · {batch.templateVersionTag}
                 </ReadValue>
               </FormField>
             </FieldGroup>
             <FieldGroup title={t.totalsLabel}>
-              <FormField label={t.itemsCountLabel} layout="inline">
+              <FormField
+                field="export.itemCount"
+                label={t.itemsCountLabel}
+                layout="inline"
+              >
                 <ReadValue>{batch.itemCount}</ReadValue>
               </FormField>
-              <FormField label="DPP" layout="inline">
-                <ReadValue mono>
+              <FormField field="export.totalDpp" label="DPP" layout="inline">
+                <ReadValue mono className="font-bold">
                   {formatAmountString(batch.totalDppAmount, locale)}
                 </ReadValue>
               </FormField>
-              <FormField label={intake.totalAmount} layout="inline">
-                <ReadValue mono>
+              <FormField
+                field="export.totalTax"
+                label={intake.totalAmount}
+                layout="inline"
+              >
+                <ReadValue mono className="font-bold">
                   {formatAmountString(batch.totalTaxAmount, locale)}
                 </ReadValue>
               </FormField>
-              <FormField label={t.checksumLabel} layout="inline">
+              <FormField
+                field="export.xmlSha256"
+                label={t.checksumLabel}
+                layout="inline"
+              >
                 <ReadValue mono className="text-xs break-all">
                   {batch.xmlSha256}
                 </ReadValue>
@@ -799,14 +825,16 @@ export function ExportBatchForm({
                 <tr className="border-b">
                   <th className="px-3 py-2 text-left">#</th>
                   <th className="px-3 py-2 text-left">{s.menuTransactions}</th>
-                  <th className="px-3 py-2 text-left">TaxObjectCode</th>
+                  <th className="px-3 py-2 text-left">
+                    {fieldInfo(locale, "tax.objectCode").label}
+                  </th>
                   <th className="px-3 py-2 text-right">%</th>
                   <th className="px-3 py-2 text-right">DPP</th>
                   <th className="px-3 py-2 text-right">{intake.totalAmount}</th>
                 </tr>
               </thead>
               <tbody>
-                {batch.items.map((item) => (
+                {itemsPage.rows.map((item) => (
                   <tr key={item.id} className="border-b last:border-b-0">
                     <td className="px-3 py-2 tabular-nums">
                       {item.sequenceNo}
@@ -834,7 +862,21 @@ export function ExportBatchForm({
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="bg-surface-2">
+                <tr className="border-t-2 border-border-strong font-bold">
+                  <td className="px-3 py-2.5" colSpan={4}>
+                    {v.total}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono whitespace-nowrap">
+                    {formatAmountString(batch.totalDppAmount, locale)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono whitespace-nowrap">
+                    {formatAmountString(batch.totalTaxAmount, locale)}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
+            <PagedFooter paged={itemsPage} v={v} />
           </div>
           <p className="flex items-start gap-2 text-xs text-muted-foreground">
             <ShieldCheck
@@ -867,7 +909,11 @@ export function ExportBatchForm({
         }
       >
         <div className="space-y-4">
-          <FormField label={t.recordOutcomeTitle} required>
+          <FormField
+            field="export.outcome"
+            label={t.recordOutcomeTitle}
+            required
+          >
             <Combobox
               value={outcome}
               onChange={(value) =>
@@ -881,14 +927,14 @@ export function ExportBatchForm({
               labels={comboLabels(locale)}
             />
           </FormField>
-          <FormField label={t.coretaxRefLabel}>
+          <FormField field="export.coretaxReference" label={t.coretaxRefLabel}>
             <TextInput
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               maxLength={80}
             />
           </FormField>
-          <FormField label={t.outcomeNoteLabel}>
+          <FormField field="export.notes" label={t.outcomeNoteLabel}>
             <TextArea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

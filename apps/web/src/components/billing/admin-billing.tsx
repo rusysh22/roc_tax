@@ -1,5 +1,9 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
+import { Combobox } from "@/components/ui/combobox";
+import { FormField } from "@/components/ui/field";
+import { comboLabels } from "@/components/views/page-state";
+import { codeOptions } from "@/i18n/codes";
 import type { Locale } from "@/i18n/messages";
 import { billingMessages } from "@/i18n/billing";
 import { formatDate } from "@/i18n/format";
@@ -169,43 +173,46 @@ export function AdminBillingView({ locale }: { locale: Locale }) {
         className="space-y-4 rounded-lg border p-6 text-sm"
       >
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-1 font-medium">
-            {t.adapterModeLabel}
-            <select
+          <FormField
+            field="billing.adapterMode"
+            label={t.adapterModeLabel}
+            required
+          >
+            <Combobox
               value={adapterMode}
-              onChange={(e) =>
-                setAdapterMode(e.target.value as BillingAdapterMode)
+              onChange={(value) =>
+                value && setAdapterMode(value as BillingAdapterMode)
               }
-              className="field-control w-auto"
-            >
-              {billingAdapterModes.map((m) => (
-                <option key={m} value={m}>
-                  {t.modes[m]}
-                </option>
-              ))}
-            </select>
-          </label>
+              options={codeOptions(locale, "billingMode", billingAdapterModes)}
+              labels={comboLabels(locale)}
+            />
+          </FormField>
           <Field
+            field="billing.apiBaseUrl"
             label={t.apiBaseUrlLabel}
             value={apiBaseUrl}
             onChange={(e) => setApiBaseUrl(e.target.value)}
           />
           <Field
+            field="billing.productSlug"
             label={t.productSlugLabel}
             value={productSlug}
             onChange={(e) => setProductSlug(e.target.value)}
           />
           <Field
+            field="billing.storefrontUrl"
             label={t.storefrontUrlLabel}
             value={storefrontUrl}
             onChange={(e) => setStorefrontUrl(e.target.value)}
           />
           <Field
+            field="billing.productSecretRef"
             label={t.productSecretRefLabel}
             value={productSecretRef}
             onChange={(e) => setProductSecretRef(e.target.value)}
           />
           <Field
+            field="billing.webhookSecretRef"
             label={t.webhookSecretRefLabel}
             value={webhookSecretRef}
             onChange={(e) => setWebhookSecretRef(e.target.value)}
@@ -213,11 +220,13 @@ export function AdminBillingView({ locale }: { locale: Locale }) {
         </div>
 
         <Field
+          field="billing.ed25519Key"
           label={t.ed25519KeyLabel}
           value={ed25519PublicKey}
           onChange={(e) => setEd25519PublicKey(e.target.value)}
         />
         <Field
+          field="billing.compatibilityNote"
           label={t.compatibilityNoteLabel}
           value={compatibilityNote}
           onChange={(e) => setCompatibilityNote(e.target.value)}

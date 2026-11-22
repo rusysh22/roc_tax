@@ -182,7 +182,10 @@ export function MenuItem({
   checked,
   hint,
   className,
+  danger = false,
 }: {
+  /** Destructive item (delete, void, revoke): rendered red. */
+  danger?: boolean;
   icon?: ReactNode;
   children: ReactNode;
   onSelect: () => void;
@@ -201,6 +204,8 @@ export function MenuItem({
       onClick={onSelect}
       className={cn(
         "flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors outline-none hover:bg-muted focus-visible:bg-muted focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45 [&_svg]:size-4 [&_svg]:shrink-0",
+        danger &&
+          "text-danger hover:bg-danger-soft focus-visible:bg-danger-soft",
         className,
       )}
     >

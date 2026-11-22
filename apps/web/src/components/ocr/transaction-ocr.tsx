@@ -1,6 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
+import { Combobox } from "@/components/ui/combobox";
+import { FormField } from "@/components/ui/field";
+import { comboLabels } from "@/components/views/page-state";
 import type { Locale } from "@/i18n/messages";
 import { ocrMessages } from "@/i18n/ocr";
 import type {
@@ -234,20 +237,17 @@ export function TransactionOcrPanel({
             </p>
           ) : (
             <div className="flex flex-wrap items-end gap-3">
-              <label className="block space-y-1 text-xs font-medium">
-                <span>Document</span>
-                <select
+              <FormField field="ocr.document" className="min-w-64">
+                <Combobox
                   value={selectedDocId}
-                  onChange={(e) => setSelectedDocId(e.target.value)}
-                  className="min-h-10 rounded-md border bg-background px-2 text-xs"
-                >
-                  {documents.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.originalName}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  onChange={(value) => value && setSelectedDocId(value)}
+                  options={documents.map((d) => ({
+                    value: d.id,
+                    label: d.originalName,
+                  }))}
+                  labels={comboLabels(locale)}
+                />
+              </FormField>
               <Button
                 type="button"
                 variant="outline"
@@ -387,37 +387,44 @@ export function TransactionOcrPanel({
               <form onSubmit={applyCandidate} className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field
+                    field="ocr.invoiceNumber"
                     label={t.fieldLabels.invoiceNumber}
                     value={inv}
                     onChange={(e) => setInv(e.target.value)}
                   />
                   <Field
+                    field="ocr.documentDate"
                     label={t.fieldLabels.documentDate}
                     type="date"
                     value={docDate}
                     onChange={(e) => setDocDate(e.target.value)}
                   />
                   <Field
+                    field="ocr.taxPeriod"
                     label={t.fieldLabels.taxPeriod}
                     value={period}
                     onChange={(e) => setPeriod(e.target.value)}
                   />
                   <Field
+                    field="ocr.counterpartyIdentity"
                     label={t.fieldLabels.counterpartyIdentity}
                     value={verifiedId}
                     onChange={(e) => setVerifiedId(e.target.value)}
                   />
                   <Field
+                    field="ocr.lineDescription"
                     label={t.fieldLabels.lineDescription}
                     value={lineDesc}
                     onChange={(e) => setLineDesc(e.target.value)}
                   />
                   <Field
+                    field="ocr.quantity"
                     label={t.fieldLabels.quantity}
                     value={qty}
                     onChange={(e) => setQty(e.target.value)}
                   />
                   <Field
+                    field="ocr.unitPrice"
                     label={t.fieldLabels.unitPrice}
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}

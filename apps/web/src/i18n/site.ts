@@ -52,10 +52,10 @@ export const siteMessages = {
       "Alur pengajuan, permintaan perbaikan, persetujuan terkunci, dan mesin aturan deterministik sudah tersedia. Persetujuan produksi diblokir sampai katalog aturan resmi disetujui ahli pajak (SME).",
     export: "XML untuk impor manual",
     exportBody:
-      "Registri templat resmi DJP dan generator XML BPPU v.3 terverifikasi sumber tersedia untuk snapshot SME_APPROVED yang telah disetujui. Keluarga dokumen lain diblokir (TEMPLATE_UNVERIFIED), dan unggah ke Coretax tetap manual.",
+      "Registri templat resmi DJP dan generator XML BPPU v.3 terverifikasi sumber tersedia untuk transaksi dengan aturan pajak resmi. Jenis dokumen lain diblokir sampai templatnya terverifikasi, dan unggah ke Coretax tetap manual.",
     ocr: "OCR opsional",
     ocrBody:
-      "Pengaturan penyedia OCR (default NONE) dan alur koreksi kandidat sudah tersedia. Penyedia AI eksternal produksi berstatus NOT_CONFIGURED sampai persetujuan vendor dan kredensial disiapkan.",
+      "Pengaturan penyedia OCR (bawaan: manual) dan alur koreksi kandidat sudah tersedia. Penyedia AI eksternal produksi belum dikonfigurasi sampai persetujuan vendor dan kredensial disiapkan.",
     featuresIntro:
       "Lihat kemampuan yang sudah berjalan dan batas pengembangan saat ini. Tidak ada ekspor pajak yang tersedia pada rilis ini.",
     familiesTitle: "Status dokumen pajak",
@@ -261,10 +261,10 @@ export const siteMessages = {
       "Submission, change requests, immutable approval snapshots, and the deterministic rule engine are available. Production approval remains blocked until a Tax SME-approved rule catalog exists.",
     export: "XML for manual import",
     exportBody:
-      "The official DJP template registry and source-verified BPPU v.3 XML exporter are available for approved SME_APPROVED snapshots. Other document families fail closed (TEMPLATE_UNVERIFIED), and Coretax upload remains manual.",
+      "The official DJP template registry and source-verified BPPU v.3 XML exporter are available for transactions under official tax rules. Other document families stay blocked until their template is verified, and Coretax upload remains manual.",
     ocr: "Optional OCR",
     ocrBody:
-      "Configurable OCR provider registry (NONE by default) and side-by-side candidate correction are available. Production external AI OCR remains NOT_CONFIGURED until vendor approval and credentials are supplied.",
+      "Configurable OCR provider registry (manual by default) and side-by-side candidate correction are available. Production external AI OCR remains unconfigured until vendor approval and credentials are supplied.",
     featuresIntro:
       "See what works today and the current development boundaries. No tax export is available in this release.",
     familiesTitle: "Tax document status",

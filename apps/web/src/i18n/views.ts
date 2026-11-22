@@ -112,6 +112,12 @@ export const viewMessages = {
     groupCount: "{label} ({n})",
     none: "—",
     notFound: "Data tidak ditemukan atau Anda tidak memiliki akses.",
+    technicalName: "Nama teknis",
+    total: "Total",
+    status: "Status",
+    until: "Berlaku hingga",
+    showMore: "Tampilkan lebih banyak",
+    rowsPerPage: "{n} per halaman",
   },
   en: {
     new: "New",
@@ -222,6 +228,12 @@ export const viewMessages = {
     groupCount: "{label} ({n})",
     none: "—",
     notFound: "Record not found or you do not have access.",
+    technicalName: "Technical name",
+    total: "Total",
+    status: "Status",
+    until: "Valid until",
+    showMore: "Show more",
+    rowsPerPage: "{n} per page",
   },
 } satisfies Record<Locale, Record<string, string>>;
 

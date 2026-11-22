@@ -48,7 +48,7 @@ export const importMessages = {
       invoiceNumber: "Nomor invoice *",
       documentDate: "Tanggal dokumen (YYYY-MM-DD) *",
       taxPeriod: "Masa pajak (YYYY-MM) *",
-      documentType: "Jenis dokumen (SUPPLIER_INVOICE/SALES_INVOICE) *",
+      documentType: "Jenis dokumen (SUPPLIER_INVOICE/SALES_INVOICE) *", // ui-standards-allow: CSV value format
       taxFamily: "Keluarga dokumen *",
       counterpartyName: "Nama lawan transaksi *",
       counterpartyIdentity: "NPWP/NIK/TIN lawan transaksi (opsional)",
@@ -67,11 +67,11 @@ export const importMessages = {
       FUTURE_DATE: "Tanggal dokumen lebih dari 7 hari ke depan.",
       DATE_TOO_OLD: "Tanggal dokumen sebelum 2000-01-01.",
       INVALID_PERIOD: "Masa pajak harus berformat YYYY-MM.",
-      INVALID_DOCUMENT_TYPE: "Gunakan SUPPLIER_INVOICE atau SALES_INVOICE.",
+      INVALID_DOCUMENT_TYPE: "Gunakan SUPPLIER_INVOICE atau SALES_INVOICE.", // ui-standards-allow: CSV value format
       BLOCKED_TAX_FAMILY:
         "Keluarga PPh 21 / PPh 26 memerlukan data penggajian atau traktat dan dikunci pada impor invoice.",
       INVALID_TAX_FAMILY:
-        "Gunakan UNCLASSIFIED, PPH_UNIFIKASI_BPPU, PPN_FAKTUR_KELUARAN, atau PPH_UNIFIKASI_BPNR.",
+        "Gunakan UNCLASSIFIED, PPH_UNIFIKASI_BPPU, PPN_FAKTUR_KELUARAN, atau PPH_UNIFIKASI_BPNR.", // ui-standards-allow: CSV value format
       FAMILY_DOCUMENT_TYPE:
         "Jenis dokumen tidak sesuai dengan keluarga pajak yang dipilih.",
       UNKNOWN_COUNTERPARTY:
@@ -115,7 +115,7 @@ export const importMessages = {
       MONTHLY_LIMIT:
         "Kuota transaksi bulanan paket langganan tidak mencukupi untuk seluruh baris valid. Tidak ada baris yang disimpan.",
       ENTITLEMENT_MISSING:
-        "Lisensi langganan tidak memuat hak MONTHLY_TRANSACTIONS yang valid. Hubungi admin penagihan.",
+        "Lisensi langganan tidak memuat kuota transaksi bulanan yang valid. Hubungi admin penagihan.",
       IDEMPOTENCY_CONFLICT:
         "Kunci permintaan batch sudah digunakan untuk berkas atau pemetaan berbeda.",
       UNKNOWN_COMPANY: "Pilih perusahaan aktif dari ruang kerja ini.",
@@ -168,7 +168,7 @@ export const importMessages = {
       invoiceNumber: "Invoice number *",
       documentDate: "Document date (YYYY-MM-DD) *",
       taxPeriod: "Tax period (YYYY-MM) *",
-      documentType: "Document type (SUPPLIER_INVOICE/SALES_INVOICE) *",
+      documentType: "Document type (SUPPLIER_INVOICE/SALES_INVOICE) *", // ui-standards-allow: CSV value format
       taxFamily: "Document family *",
       counterpartyName: "Counterparty name *",
       counterpartyIdentity: "Counterparty tax ID (optional)",
@@ -187,11 +187,11 @@ export const importMessages = {
       FUTURE_DATE: "Document date is more than 7 days in the future.",
       DATE_TOO_OLD: "Document date is before 2000-01-01.",
       INVALID_PERIOD: "Tax period must use YYYY-MM format.",
-      INVALID_DOCUMENT_TYPE: "Use SUPPLIER_INVOICE or SALES_INVOICE.",
+      INVALID_DOCUMENT_TYPE: "Use SUPPLIER_INVOICE or SALES_INVOICE.", // ui-standards-allow: CSV value format
       BLOCKED_TAX_FAMILY:
         "PPh 21 / PPh 26 families require payroll or treaty data and are locked for invoice imports.",
       INVALID_TAX_FAMILY:
-        "Use UNCLASSIFIED, PPH_UNIFIKASI_BPPU, PPN_FAKTUR_KELUARAN, or PPH_UNIFIKASI_BPNR.",
+        "Use UNCLASSIFIED, PPH_UNIFIKASI_BPPU, PPN_FAKTUR_KELUARAN, or PPH_UNIFIKASI_BPNR.", // ui-standards-allow: CSV value format
       FAMILY_DOCUMENT_TYPE:
         "Document type does not match the selected tax family.",
       UNKNOWN_COUNTERPARTY: "Counterparty was not found in this workspace.",
@@ -233,7 +233,7 @@ export const importMessages = {
       MONTHLY_LIMIT:
         "Your plan's remaining monthly transaction quota is not enough for all valid rows. No rows were saved.",
       ENTITLEMENT_MISSING:
-        "The subscription license has no valid MONTHLY_TRANSACTIONS entitlement. Contact your billing admin.",
+        "The subscription license has no valid monthly transaction quota. Contact your billing admin.",
       IDEMPOTENCY_CONFLICT:
         "This batch request key was already used with a different file or mapping.",
       UNKNOWN_COMPANY: "Choose an active company from this workspace.",

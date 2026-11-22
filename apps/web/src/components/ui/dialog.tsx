@@ -115,6 +115,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
   children,
+  tone = "danger",
 }: {
   open: boolean;
   title: ReactNode;
@@ -122,6 +123,8 @@ export function ConfirmDialog({
   confirmLabel: string;
   cancelLabel: string;
   busy?: boolean;
+  /** CTA colour of the confirm button (14_UI_STANDARDS: red = destructive). */
+  tone?: "default" | "danger" | "warning" | "success";
   onConfirm: () => void;
   onCancel: () => void;
   children?: ReactNode;
@@ -138,7 +141,12 @@ export function ConfirmDialog({
           <Button type="button" variant="outline" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button type="button" disabled={busy} onClick={onConfirm}>
+          <Button
+            type="button"
+            variant={tone}
+            disabled={busy}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </>

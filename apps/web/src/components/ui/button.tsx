@@ -8,15 +8,25 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
+        /** Primary action (blue). */
         default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/85 active:bg-primary/75",
+          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 active:bg-primary/80",
         outline:
-          "border border-border-strong bg-surface text-foreground shadow-xs hover:border-foreground/50 hover:bg-surface-2 active:bg-muted",
+          "border border-border-strong bg-surface text-foreground shadow-xs hover:border-foreground/40 hover:bg-surface-2 active:bg-muted",
         secondary: "bg-muted text-foreground hover:bg-accent active:bg-accent",
         ghost: "text-foreground hover:bg-muted active:bg-accent",
-        link: "h-auto px-0 text-foreground underline-offset-4 hover:underline",
+        link: "h-auto px-0 text-primary underline-offset-4 hover:underline",
+        /** Approve / confirm a positive outcome (green). */
+        success:
+          "bg-success text-white shadow-xs hover:bg-success/90 active:bg-success/80",
+        /** Send back / needs attention (amber). */
+        warning:
+          "bg-warning text-white shadow-xs hover:bg-warning/90 active:bg-warning/80",
+        /** Destructive: delete, void, revoke (red). */
         danger:
-          "border border-foreground bg-surface text-foreground shadow-xs hover:bg-foreground hover:text-background",
+          "bg-danger text-white shadow-xs hover:bg-danger/90 active:bg-danger/80",
+        /** Brand dark (neutral emphasis). */
+        dark: "bg-foreground text-background shadow-xs hover:bg-foreground/85",
       },
       size: {
         sm: "h-8 px-3 text-[0.8125rem] pointer-coarse:min-h-10",

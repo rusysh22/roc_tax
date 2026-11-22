@@ -69,12 +69,12 @@ export const intakeMessages = {
       EXTRACTING: "Mengekstrak",
       NEEDS_REVIEW: "Perlu tinjauan",
       VALIDATED: "Tervalidasi",
-      SUBMITTED: "Diajukan",
+      SUBMITTED: "Menunggu persetujuan",
       CHANGES_REQUESTED: "Perlu perbaikan",
       APPROVED: "Disetujui",
       EXPORTED: "Diekspor",
-      CORETAX_ACCEPTED: "Diterima Coretax (manual)",
-      CORETAX_REJECTED: "Ditolak Coretax (manual)",
+      CORETAX_ACCEPTED: "Diterima Coretax",
+      CORETAX_REJECTED: "Ditolak Coretax",
       VOIDED: "Dibatalkan",
     },
     families: {
@@ -218,7 +218,7 @@ export const intakeMessages = {
       MONTHLY_LIMIT:
         "Kuota transaksi bulanan paket langganan ruang kerja ini sudah habis.",
       ENTITLEMENT_MISSING:
-        "Lisensi langganan tidak memuat hak MONTHLY_TRANSACTIONS yang valid. Hubungi admin penagihan.",
+        "Lisensi langganan tidak memuat kuota transaksi bulanan yang valid. Hubungi admin penagihan.",
       IDEMPOTENCY_CONFLICT:
         "Kunci permintaan sudah digunakan untuk data berbeda.",
       INVALID_STATE:
@@ -300,12 +300,12 @@ export const intakeMessages = {
       EXTRACTING: "Extracting",
       NEEDS_REVIEW: "Needs review",
       VALIDATED: "Validated",
-      SUBMITTED: "Submitted",
+      SUBMITTED: "Awaiting approval",
       CHANGES_REQUESTED: "Changes requested",
       APPROVED: "Approved",
       EXPORTED: "Exported",
-      CORETAX_ACCEPTED: "Coretax accepted (manual)",
-      CORETAX_REJECTED: "Coretax rejected (manual)",
+      CORETAX_ACCEPTED: "Accepted by Coretax",
+      CORETAX_REJECTED: "Rejected by Coretax",
       VOIDED: "Voided",
     },
     families: {
@@ -447,7 +447,7 @@ export const intakeMessages = {
       MONTHLY_LIMIT:
         "This workspace's monthly subscription transaction quota has been used.",
       ENTITLEMENT_MISSING:
-        "The subscription license has no valid MONTHLY_TRANSACTIONS entitlement. Contact your billing admin.",
+        "The subscription license has no valid monthly transaction quota. Contact your billing admin.",
       IDEMPOTENCY_CONFLICT:
         "This request key was already used with different data.",
       INVALID_STATE:

@@ -172,9 +172,9 @@ export function CompaniesList({ locale }: { locale: Locale }) {
       header: t.status,
       cell: (c) =>
         c.archivedAt ? (
-          <Badge tone="muted">{v.archived}</Badge>
+          <Badge tone="gray">{v.archived}</Badge>
         ) : (
-          <Badge tone="solid" dot>
+          <Badge tone="green" dot>
             {v.active}
           </Badge>
         ),
@@ -375,6 +375,7 @@ export function CompanyForm({
                 </MenuItem>
                 <MenuSeparator />
                 <MenuItem
+                  danger
                   icon={<Trash2 />}
                   onSelect={() => {
                     close();
@@ -397,18 +398,26 @@ export function CompanyForm({
           <SheetTitle label={t.companyName}>{record.name}</SheetTitle>
           <div className="grid gap-x-12 gap-y-6 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              <FormField label={t.legalName} layout="inline">
+              <FormField
+                field="company.legalName"
+                label={t.legalName}
+                layout="inline"
+              >
                 <ReadValue>{record.legalName}</ReadValue>
               </FormField>
-              <FormField label={t.address} layout="inline">
+              <FormField
+                field="company.address"
+                label={t.address}
+                layout="inline"
+              >
                 <ReadValue>{record.address}</ReadValue>
               </FormField>
             </FieldGroup>
             <FieldGroup title="NPWP / NITKU">
-              <FormField label="NPWP" layout="inline">
+              <FormField field="company.npwp" label="NPWP" layout="inline">
                 <ReadValue mono>{masked(record.npwpHint)}</ReadValue>
               </FormField>
-              <FormField label="NITKU" layout="inline">
+              <FormField field="company.nitku" label="NITKU" layout="inline">
                 <ReadValue mono>{masked(record.nitkuHint)}</ReadValue>
               </FormField>
             </FieldGroup>
@@ -431,7 +440,7 @@ export function CompanyForm({
               {error}
             </p>
           )}
-          <FormField label={t.companyName} required>
+          <FormField field="company.name" label={t.companyName} required>
             <TextInput
               value={draft.name}
               onChange={(e) => set({ name: e.target.value })}
@@ -442,14 +451,23 @@ export function CompanyForm({
           </FormField>
           <div className="grid gap-x-12 gap-y-5 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              <FormField label={t.legalName} required layout="inline">
+              <FormField
+                field="company.legalName"
+                label={t.legalName}
+                required
+                layout="inline"
+              >
                 <TextInput
                   value={draft.legalName}
                   onChange={(e) => set({ legalName: e.target.value })}
                   maxLength={200}
                 />
               </FormField>
-              <FormField label={t.address} layout="inline">
+              <FormField
+                field="company.address"
+                label={t.address}
+                layout="inline"
+              >
                 <TextArea
                   value={draft.address}
                   onChange={(e) => set({ address: e.target.value })}
@@ -460,6 +478,7 @@ export function CompanyForm({
             </FieldGroup>
             <FieldGroup title="NPWP / NITKU">
               <FormField
+                field="company.npwp"
                 label={t.npwp}
                 layout="inline"
                 help={
@@ -484,7 +503,7 @@ export function CompanyForm({
                   onChange={(e) => set({ clearNpwp: e.target.checked })}
                 />
               )}
-              <FormField label={t.nitku} layout="inline">
+              <FormField field="company.nitku" label={t.nitku} layout="inline">
                 <TextInput
                   value={draft.nitku}
                   onChange={(e) => set({ nitku: e.target.value })}
@@ -512,6 +531,7 @@ export function CompanyForm({
         }
         body={confirm === "delete" ? v.confirmDeleteBody : v.confirmArchiveBody}
         confirmLabel={confirm === "delete" ? v.delete : v.archive}
+        tone={confirm === "delete" ? "danger" : "warning"}
         cancelLabel={v.cancel}
         onConfirm={() =>
           confirm &&

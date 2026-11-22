@@ -33,6 +33,7 @@ import { NoWorkspace, comboLabels } from "@/components/views/page-state";
 import type { Column } from "@/components/views/list-view";
 import type { ViewField } from "@/components/views/search";
 import { useResource } from "@/components/views/use-resource";
+import { PagedFooter, usePaged } from "@/components/views/paged";
 import { Wizard } from "@/components/views/wizard";
 import {
   ApiFailure,
@@ -178,7 +179,7 @@ export function ImportsList({ locale }: { locale: Locale }) {
     {
       key: "format",
       header: "Format",
-      cell: (b) => <Badge tone="outline">{b.format}</Badge>,
+      cell: (b) => <Badge tone="gray">{b.format}</Badge>,
       hideBelow: "md",
     },
     {
@@ -289,6 +290,7 @@ function ImportWizard({
   const [family, setFamily] = useState<string>("UNCLASSIFIED");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
+  const previewPage = usePaged(preview?.rows ?? []);
   const [mapping, setMapping] = useState<Partial<Record<ImportColumn, string>>>(
     {},
   );
@@ -376,12 +378,12 @@ function ImportWizard({
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">{t.intro}</p>
       {error && (
-        <Notice tone="strong" role="alert">
+        <Notice tone="danger" role="alert">
           {error}
         </Notice>
       )}
       <FieldGroup>
-        <FormField label={t.selectCompany} required>
+        <FormField field="import.companyId" label={t.selectCompany} required>
           <Combobox
             value={company}
             onChange={(value) => setCompanyId(value)}
@@ -390,6 +392,7 @@ function ImportWizard({
           />
         </FormField>
         <FormField
+          field="import.file"
           label={t.selectFile}
           required
           help=".csv / .xlsx · ≤ 2 MB · ≤ 200"
@@ -443,7 +446,7 @@ function ImportWizard({
   const review = preview && (
     <div className="space-y-6">
       {error && (
-        <Notice tone="strong" role="alert">
+        <Notice tone="danger" role="alert">
           {error}
         </Notice>
       )}
@@ -451,6 +454,7 @@ function ImportWizard({
         {importColumns.map((col) => (
           <FormField
             key={col}
+            field="import.mapping"
             label={t.columns[col]}
             required={requiredImportColumns.includes(col)}
             layout="inline"
@@ -509,7 +513,7 @@ function ImportWizard({
       )}
       {preview.quotaBlockReason &&
         t.errors[preview.quotaBlockReason as keyof typeof t.errors] && (
-          <Notice tone="strong" role="alert">
+          <Notice tone="danger" role="alert">
             {t.errors[preview.quotaBlockReason as keyof typeof t.errors]}
           </Notice>
         )}
@@ -541,7 +545,7 @@ function ImportWizard({
             </tr>
           </thead>
           <tbody>
-            {preview.rows.map((row) => (
+            {previewPage.rows.map((row) => (
               <tr
                 key={row.rowNumber}
                 className="border-b last:border-b-0 align-top"
@@ -549,9 +553,9 @@ function ImportWizard({
                 <td className="px-3 py-2 font-mono">{row.rowNumber}</td>
                 <td className="px-3 py-2">
                   {row.status === "VALID" ? (
-                    <Badge tone="solid">{t.valid}</Badge>
+                    <Badge tone="green">{t.valid}</Badge>
                   ) : (
-                    <Badge tone="muted">{t.invalid}</Badge>
+                    <Badge tone="red">{t.invalid}</Badge>
                   )}
                 </td>
                 <td className="px-3 py-2 font-mono">{row.invoiceNumber}</td>
@@ -588,6 +592,7 @@ function ImportWizard({
             ))}
           </tbody>
         </table>
+        <PagedFooter paged={previewPage} v={viewMessages[locale]} />
       </div>
       {preview.duplicateRows > 0 && (
         <Checkbox
@@ -663,6 +668,7 @@ export function ImportBatchForm({
   );
   const companies = useResource(() => apiGet<Companies>("/api/companies"));
   const record = batch.data?.batches[0] ?? null;
+  const rowsPage = usePaged(record?.rowSummary ?? []);
   const company = companies.data?.companies.find(
     (c) => c.id === record?.companyId,
   );
@@ -689,13 +695,17 @@ export function ImportBatchForm({
         <div className="space-y-8">
           <SheetTitle
             label={t.historyTitle}
-            aside={<Badge tone="outline">{record.format}</Badge>}
+            aside={<Badge tone="gray">{record.format}</Badge>}
           >
             {record.fileName}
           </SheetTitle>
           <div className="grid gap-x-12 gap-y-6 lg:grid-cols-2">
             <FieldGroup title={v.information}>
-              <FormField label={intake.company} layout="inline">
+              <FormField
+                field="import.companyId"
+                label={intake.company}
+                layout="inline"
+              >
                 <ReadValue>
                   {company ? (
                     <Link
@@ -707,31 +717,59 @@ export function ImportBatchForm({
                   ) : null}
                 </ReadValue>
               </FormField>
-              <FormField label={v.from} layout="inline">
+              <FormField
+                field="import.createdAt"
+                label={v.from}
+                layout="inline"
+              >
                 <ReadValue>
                   {formatDate(new Date(record.createdAt), locale)}
                 </ReadValue>
               </FormField>
-              <FormField label={intake.history} layout="inline">
+              <FormField
+                field="import.createdBy"
+                label={intake.history}
+                layout="inline"
+              >
                 <ReadValue>{record.createdBy}</ReadValue>
               </FormField>
-              <FormField label={t.fileHash} layout="inline">
+              <FormField
+                field="import.fileSha256"
+                label={t.fileHash}
+                layout="inline"
+              >
                 <ReadValue mono className="text-xs break-all">
                   {record.fileSha256}
                 </ReadValue>
               </FormField>
             </FieldGroup>
             <FieldGroup title={t.summaryTitle}>
-              <FormField label={t.totalRows} layout="inline">
+              <FormField
+                field="import.totalRows"
+                label={t.totalRows}
+                layout="inline"
+              >
                 <ReadValue>{record.totalRows}</ReadValue>
               </FormField>
-              <FormField label={t.validRows} layout="inline">
+              <FormField
+                field="import.validRows"
+                label={t.validRows}
+                layout="inline"
+              >
                 <ReadValue>{record.validRows}</ReadValue>
               </FormField>
-              <FormField label={t.invalidRows} layout="inline">
+              <FormField
+                field="import.invalidRows"
+                label={t.invalidRows}
+                layout="inline"
+              >
                 <ReadValue>{record.invalidRows}</ReadValue>
               </FormField>
-              <FormField label={t.createdCount} layout="inline">
+              <FormField
+                field="import.createdCount"
+                label={t.createdCount}
+                layout="inline"
+              >
                 <ReadValue>{record.createdCount}</ReadValue>
               </FormField>
             </FieldGroup>
@@ -752,7 +790,7 @@ export function ImportBatchForm({
                   </tr>
                 </thead>
                 <tbody>
-                  {record.rowSummary.map((row) => (
+                  {rowsPage.rows.map((row) => (
                     <tr
                       key={row.rowNumber}
                       className="border-b align-top last:border-b-0"
@@ -762,9 +800,9 @@ export function ImportBatchForm({
                       </td>
                       <td className="px-3 py-2">
                         {row.status === "VALID" ? (
-                          <Badge tone="solid">{t.valid}</Badge>
+                          <Badge tone="green">{t.valid}</Badge>
                         ) : (
-                          <Badge tone="muted">{t.invalid}</Badge>
+                          <Badge tone="red">{t.invalid}</Badge>
                         )}
                       </td>
                       <td className="px-3 py-2 font-mono">
@@ -788,6 +826,7 @@ export function ImportBatchForm({
                   ))}
                 </tbody>
               </table>
+              <PagedFooter paged={rowsPage} v={v} />
             </div>
           )}
           {record.transactionIds.length > 0 && (
