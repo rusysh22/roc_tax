@@ -1,9 +1,8 @@
-import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { getAuth } from "@/server/auth";
 import { isLocale } from "@/i18n/messages";
 import { accountMessages } from "@/i18n/account";
 import { AppShell } from "@/components/layout/app-shell";
+import { shellSession } from "@/server/shell/session";
 export const dynamic = "force-dynamic";
 export default async function Page({
   params,
@@ -14,20 +13,18 @@ export default async function Page({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  let session;
-  try {
-    session = await getAuth().api.getSession({
-      headers: await headers(),
-      query: { disableCookieCache: true },
-    });
-  } catch {
+  const session = await shellSession();
+  if (session.state === "unavailable")
     return (
       <main className="p-8" role="alert">
         {accountMessages[locale].unavailable}
       </main>
     );
-  }
-  if (!session) redirect(`/${locale}/auth/sign-in`);
-  if (!session.user.emailVerified) redirect(`/${locale}/auth/verify`);
-  return <AppShell locale={locale}>{children}</AppShell>;
+  if (session.state === "anonymous") redirect(`/${locale}/auth/sign-in`);
+  if (session.state === "unverified") redirect(`/${locale}/auth/verify`);
+  return (
+    <AppShell locale={locale} user={session.user}>
+      {children}
+    </AppShell>
+  );
 }

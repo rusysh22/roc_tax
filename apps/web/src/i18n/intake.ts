@@ -173,6 +173,8 @@ export const intakeMessages = {
       DATE_TOO_OLD: "Tanggal dokumen terlalu lampau.",
       UNKNOWN_COMPANY: "Pilih perusahaan dari ruang kerja aktif.",
       ARCHIVED_COMPANY: "Perusahaan yang diarsipkan tidak dapat dipilih.",
+      ARCHIVED_COUNTERPARTY:
+        "Lawan transaksi yang diarsipkan tidak dapat dipilih.",
       UNKNOWN_COUNTERPARTY: "Pilih lawan transaksi dari ruang kerja aktif.",
       COUNTERPARTY_KIND:
         "Peran lawan transaksi tidak sesuai dengan jenis invoice (vendor vs pelanggan).",
@@ -223,6 +225,8 @@ export const intakeMessages = {
         "Status transaksi saat ini tidak mengizinkan tindakan tersebut.",
       STALE_VERSION:
         "Data telah diperbarui oleh proses lain. Muat ulang halaman.",
+      IN_USE:
+        "Data sudah dipakai oleh transaksi, impor, atau ekspor sehingga tidak dapat dihapus. Arsipkan saja.",
       FORBIDDEN: "Akses ditolak untuk peran Anda pada ruang kerja ini.",
       NO_WORKSPACE: "Pilih ruang kerja aktif terlebih dahulu.",
       FAILED: "Permintaan tidak dapat diproses.",
@@ -400,6 +404,7 @@ export const intakeMessages = {
       DATE_TOO_OLD: "Document date is out of range.",
       UNKNOWN_COMPANY: "Choose a company from the active workspace.",
       ARCHIVED_COMPANY: "Archived companies cannot be selected.",
+      ARCHIVED_COUNTERPARTY: "Archived counterparties cannot be selected.",
       UNKNOWN_COUNTERPARTY: "Choose a counterparty from the active workspace.",
       COUNTERPARTY_KIND:
         "Counterparty role does not match the invoice type (vendor vs customer).",
@@ -448,6 +453,8 @@ export const intakeMessages = {
       INVALID_STATE:
         "The current transaction status does not allow this action.",
       STALE_VERSION: "This record was updated elsewhere. Reload the page.",
+      IN_USE:
+        "This record is used by transactions, imports or exports and cannot be deleted. Archive it instead.",
       FORBIDDEN: "Access denied for your role in this workspace.",
       NO_WORKSPACE: "Select an active workspace first.",
       FAILED: "The request could not be completed.",

@@ -115,7 +115,7 @@ export function OrgOcrSettingsView({ locale }: { locale: Locale }) {
   if (noWorkspace) {
     return (
       <div className="space-y-4">
-        <h1 className="text-3xl font-semibold">{t.settingsTitle}</h1>
+        <h1 className="text-2xl font-semibold">{t.settingsTitle}</h1>
         <p>{acc.noWorkspace}</p>
         <Link className="underline" href={`/${locale}/app/settings`}>
           {site.manageWorkspace}
@@ -136,7 +136,7 @@ export function OrgOcrSettingsView({ locale }: { locale: Locale }) {
         <Link className="text-sm underline" href={`/${locale}/app/settings`}>
           {site.settings}
         </Link>
-        <h1 className="text-3xl font-semibold">{t.settingsTitle}</h1>
+        <h1 className="text-2xl font-semibold">{t.settingsTitle}</h1>
         <p className="text-sm leading-6 text-muted-foreground">
           {t.settingsIntro}
         </p>
@@ -181,7 +181,10 @@ export function OrgOcrSettingsView({ locale }: { locale: Locale }) {
           {t.managerOnly}
         </p>
       ) : (
-        <form onSubmit={submit} className="space-y-5 rounded-lg border p-5">
+        <form
+          onSubmit={submit}
+          className="space-y-5 rounded-xl border bg-surface p-5 shadow-xs"
+        >
           <label className="block space-y-2 text-sm font-medium">
             <span>{t.chooseProvider}</span>
             <select
@@ -190,7 +193,7 @@ export function OrgOcrSettingsView({ locale }: { locale: Locale }) {
                 setSelectedSlug(e.target.value);
                 if (e.target.value === "none") setConsent(false);
               }}
-              className="min-h-11 w-full rounded-md border bg-background px-3"
+              className="field-control"
             >
               <option value="none">{t.noneOption}</option>
               {data.allowedProviders.map((p) => (

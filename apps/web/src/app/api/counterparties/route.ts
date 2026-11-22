@@ -11,10 +11,14 @@ export async function GET(request: Request) {
     const sessionId = await requireSessionId(request, false);
     const url = new URL(request.url);
     return jsonResponse(
-      await getIntake().listCounterparties(sessionId, {
-        q: url.searchParams.get("q") ?? undefined,
-        page: url.searchParams.get("page") ?? undefined,
-      }),
+      await getIntake().listCounterparties(
+        sessionId,
+        Object.fromEntries(
+          ["q", "id", "archived", "page", "pageSize"]
+            .map((key) => [key, url.searchParams.get(key) ?? undefined])
+            .filter(([, value]) => value !== undefined),
+        ),
+      ),
     );
   } catch (error) {
     return intakeErrorResponse(error);

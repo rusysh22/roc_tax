@@ -202,7 +202,7 @@ export function TransactionOcrPanel({
   }
 
   return (
-    <section className="space-y-4 rounded-lg border p-5">
+    <section className="space-y-4 rounded-xl border bg-surface p-5 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">{t.transactionOcrTitle}</h2>
         <StatusBadge active={data.effectiveStatus === "READY"}>

@@ -39,7 +39,13 @@ function parseMappingHeader(
 export async function GET(request: Request) {
   try {
     const sessionId = await requireSessionId(request, false);
-    return jsonResponse(await getImports().listBatches(sessionId));
+    const id = new URL(request.url).searchParams.get("id");
+    return jsonResponse(
+      await getImports().listBatches(
+        sessionId,
+        id ? idSchema.parse(id) : undefined,
+      ),
+    );
   } catch (error) {
     return intakeErrorResponse(error);
   }

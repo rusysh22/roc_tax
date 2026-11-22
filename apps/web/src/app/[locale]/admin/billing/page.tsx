@@ -1,3 +1,4 @@
+import { PageBody } from "@/components/views/control-panel";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/messages";
 import { AdminBillingView } from "@/components/billing/admin-billing";
@@ -9,5 +10,9 @@ export default async function Page({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  return <AdminBillingView locale={locale} />;
+  return (
+    <PageBody className="max-w-6xl">
+      <AdminBillingView locale={locale} />
+    </PageBody>
+  );
 }

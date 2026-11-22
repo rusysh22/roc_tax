@@ -1,20 +1,39 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { Download, FileSpreadsheet, FileUp, RefreshCw } from "lucide-react";
 import type { Locale } from "@/i18n/messages";
 import { importMessages } from "@/i18n/imports";
 import { intakeMessages } from "@/i18n/intake";
-import { siteMessages } from "@/i18n/site";
-import { accountMessages } from "@/i18n/account";
+import { shellMessages } from "@/i18n/shell";
+import { viewMessages } from "@/i18n/views";
 import { formatDate } from "@/i18n/format";
 import { intakeFamilies } from "@/lib/intake/schemas";
-import { importColumns, type ImportColumn } from "@/lib/intake/spreadsheet";
+import {
+  importColumns,
+  requiredImportColumns,
+  type ImportColumn,
+} from "@/lib/intake/spreadsheet";
 import { can, type Role } from "@/server/workspaces/policy";
 import type { ImportPreviewResult } from "@/server/intake/imports";
-import { TrialStrip } from "@/components/account/trial-strip";
 import { Button } from "@/components/ui/button";
-import { Skeleton, StatusBadge } from "@/components/ui/status";
-import { Submit } from "@/components/account/forms";
+import { Combobox } from "@/components/ui/combobox";
+import {
+  Checkbox,
+  FieldGroup,
+  FormField,
+  ReadValue,
+} from "@/components/ui/field";
+import { Badge, Notice } from "@/components/ui/status";
+import { useToast } from "@/components/ui/toast";
+import { FormPage, SheetTitle } from "@/components/views/form-view";
+import { ListPage } from "@/components/views/list-page";
+import { NoWorkspace, comboLabels } from "@/components/views/page-state";
+import type { Column } from "@/components/views/list-view";
+import type { ViewField } from "@/components/views/search";
+import { useResource } from "@/components/views/use-resource";
+import { Wizard } from "@/components/views/wizard";
 import {
   ApiFailure,
   apiGet,
@@ -22,7 +41,7 @@ import {
   formatFailure,
 } from "./client";
 
-type BatchHistoryItem = {
+type Batch = {
   id: string;
   companyId: string;
   fileName: string;
@@ -35,92 +54,280 @@ type BatchHistoryItem = {
   createdCount: number;
   transactionIds: string[];
   createdAt: string;
+  createdBy: string | null;
+  rowSummary?: {
+    rowNumber: number;
+    status: "VALID" | "INVALID";
+    invoiceNumber: string;
+    counterpartyName: string;
+    totalAmount: string | null;
+    issues: { column: string; code: string }[];
+    duplicates: string[];
+  }[];
+};
+type BatchesPayload = { role: Role; batches: Batch[] };
+type Companies = {
+  role: Role;
+  companies: { id: string; name: string; archivedAt: string | null }[];
 };
 
-export function ImportsView({ locale }: { locale: Locale }) {
+function importError(error: unknown, locale: Locale) {
+  if (error instanceof ApiFailure) {
+    const map = importMessages[locale].errors as Record<string, string>;
+    if (map[error.code]) return map[error.code];
+  }
+  return formatFailure(error, locale);
+}
+
+export function ImportsList({ locale }: { locale: Locale }) {
+  const t = importMessages[locale];
+  const s = shellMessages[locale];
+  const intake = intakeMessages[locale];
+  const v = viewMessages[locale];
+  const [wizard, setWizard] = useState(false);
+  const batches = useResource(() => apiGet<BatchesPayload>("/api/imports"));
+  const companies = useResource(() => apiGet<Companies>("/api/companies"));
+  const companyName = useMemo(
+    () => new Map((companies.data?.companies ?? []).map((c) => [c.id, c.name])),
+    [companies.data],
+  );
+  const canImport = batches.data
+    ? can(batches.data.role, "draft.prepare")
+    : false;
+
+  const fields = useMemo<ViewField<Batch>[]>(
+    () => [
+      {
+        name: "fileName",
+        label: t.selectFile,
+        type: "text",
+        value: (b) => b.fileName,
+        searchable: true,
+        sortable: true,
+      },
+      {
+        name: "company",
+        label: intake.company,
+        type: "enum",
+        value: (b) => b.companyId,
+        display: (b) => companyName.get(b.companyId) ?? b.companyId,
+        filterable: true,
+        groupable: true,
+      },
+      {
+        name: "format",
+        label: "Format",
+        type: "enum",
+        value: (b) => b.format,
+        filterable: true,
+        groupable: true,
+      },
+      {
+        name: "outcome",
+        label: t.summaryTitle,
+        type: "enum",
+        value: (b) => (b.invalidRows > 0 ? "partial" : "complete"),
+        options: [
+          { value: "complete", label: `${t.invalidRows}: 0` },
+          { value: "partial", label: `${t.invalidRows} > 0` },
+        ],
+        filterable: true,
+      },
+      {
+        name: "createdAt",
+        label: v.from,
+        type: "date",
+        value: (b) => b.createdAt,
+        filterable: true,
+        sortable: true,
+        display: (b) => b.createdAt.slice(0, 10),
+      },
+      {
+        name: "createdCount",
+        label: t.createdCount,
+        type: "number",
+        value: (b) => b.createdCount,
+        sortable: true,
+      },
+    ],
+    [t, intake, v, companyName],
+  );
+
+  const columns: Column<Batch>[] = [
+    {
+      key: "file",
+      header: t.selectFile,
+      sortField: "fileName",
+      primary: true,
+      cell: (b) => (
+        <span className="inline-flex items-center gap-2">
+          <FileSpreadsheet
+            aria-hidden="true"
+            className="size-4 shrink-0 text-muted-foreground"
+          />
+          <span className="truncate">{b.fileName}</span>
+        </span>
+      ),
+    },
+    {
+      key: "company",
+      header: intake.company,
+      cell: (b) => companyName.get(b.companyId) ?? "—",
+      hideBelow: "lg",
+    },
+    {
+      key: "format",
+      header: "Format",
+      cell: (b) => <Badge tone="outline">{b.format}</Badge>,
+      hideBelow: "md",
+    },
+    {
+      key: "rows",
+      header: t.totalRows,
+      align: "right",
+      cell: (b) => <span className="tabular-nums">{b.totalRows}</span>,
+    },
+    {
+      key: "invalid",
+      header: t.invalidRows,
+      align: "right",
+      cell: (b) => <span className="tabular-nums">{b.invalidRows}</span>,
+      hideBelow: "lg",
+    },
+    {
+      key: "created",
+      header: t.createdCount,
+      align: "right",
+      sortField: "createdCount",
+      cell: (b) => (
+        <span className="font-semibold tabular-nums">{b.createdCount}</span>
+      ),
+      aggregate: (rows) => rows.reduce((sum, b) => sum + b.createdCount, 0),
+    },
+    {
+      key: "date",
+      header: v.from,
+      sortField: "createdAt",
+      cell: (b) => (
+        <span className="text-xs whitespace-nowrap">
+          {formatDate(new Date(b.createdAt), locale)}
+        </span>
+      ),
+    },
+  ];
+
+  if (batches.noWorkspace) return <NoWorkspace locale={locale} />;
+  return (
+    <>
+      <ListPage
+        locale={locale}
+        title={s.menuImports}
+        model="imports"
+        fields={fields}
+        columns={columns}
+        records={batches.data?.batches ?? null}
+        getId={(b) => b.id}
+        href={(b) => `/${locale}/app/imports/${b.id}`}
+        rowLabel={(b) => b.fileName}
+        onCreate={() => setWizard(true)}
+        createLabel={v.new}
+        canCreate={canImport}
+        emptyIcon={<FileUp />}
+        emptyTitle={t.noHistory}
+        emptyHint={t.intro}
+        globalActions={(close) => (
+          <>
+            {(["csv", "xlsx"] as const).map((format) => (
+              <a
+                key={format}
+                role="menuitem"
+                href={`/api/imports/template?format=${format}&family=UNCLASSIFIED`}
+                onClick={close}
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-muted"
+              >
+                <Download aria-hidden="true" className="size-4" />
+                {format === "csv" ? t.downloadCsv : t.downloadXlsx}
+              </a>
+            ))}
+          </>
+        )}
+      />
+      <ImportWizard
+        locale={locale}
+        open={wizard}
+        onClose={() => setWizard(false)}
+        companies={companies.data?.companies.filter((c) => !c.archivedAt) ?? []}
+        onDone={async (ids) => {
+          setWizard(false);
+          await batches.reload();
+          if (ids.length === 1)
+            window.location.assign(`/${locale}/app/transactions/${ids[0]}`);
+        }}
+      />
+    </>
+  );
+}
+
+function ImportWizard({
+  locale,
+  open,
+  onClose,
+  companies,
+  onDone,
+}: {
+  locale: Locale;
+  open: boolean;
+  onClose: () => void;
+  companies: { id: string; name: string }[];
+  onDone: (transactionIds: string[]) => Promise<void>;
+}) {
   const t = importMessages[locale];
   const intake = intakeMessages[locale];
-  const site = siteMessages[locale];
-  const acc = accountMessages[locale];
-
-  const [role, setRole] = useState<Role | null>(null);
-  const [companies, setCompanies] = useState<
-    { id: string; name: string; archivedAt: string | null }[]
-  >([]);
-  const [counterpartyCount, setCounterpartyCount] = useState(0);
-  const [batches, setBatches] = useState<BatchHistoryItem[]>([]);
-  const [companyId, setCompanyId] = useState("");
-  const [templateFamily, setTemplateFamily] =
-    useState<(typeof intakeFamilies)[number]>("UNCLASSIFIED");
+  const toast = useToast();
+  const labels = comboLabels(locale);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [family, setFamily] = useState<string>("UNCLASSIFIED");
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
   const [mapping, setMapping] = useState<Partial<Record<ImportColumn, string>>>(
     {},
   );
-  const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
   const [acknowledge, setAcknowledge] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState(() =>
     crypto.randomUUID(),
   );
-  const [noWorkspace, setNoWorkspace] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [feedback, setFeedback] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const company = companyId ?? companies[0]?.id ?? null;
 
-  async function loadInitial() {
-    try {
-      const [comp, cp, hist] = await Promise.all([
-        apiGet<{
-          role: Role;
-          companies: { id: string; name: string; archivedAt: string | null }[];
-        }>("/api/companies"),
-        apiGet<{ total: number }>("/api/counterparties"),
-        apiGet<{ batches: BatchHistoryItem[] }>("/api/imports"),
-      ]);
-      const activeCompanies = comp.companies.filter((c) => !c.archivedAt);
-      setRole(comp.role);
-      setCompanies(activeCompanies);
-      setCounterpartyCount(cp.total);
-      setBatches(hist.batches);
-      setCompanyId((prev) => prev || activeCompanies[0]?.id || "");
-      setNoWorkspace(false);
-    } catch (error) {
-      if (error instanceof ApiFailure && error.code === "NO_WORKSPACE")
-        setNoWorkspace(true);
-      else setFeedback(formatImportFailure(error));
-    }
+  function reset() {
+    setFile(null);
+    setPreview(null);
+    setMapping({});
+    setAcknowledge(false);
+    setError(null);
+    setIdempotencyKey(crypto.randomUUID());
   }
 
-  useEffect(() => {
-    void loadInitial();
-  }, []);
-
-  function formatImportFailure(error: unknown): string {
-    if (error instanceof ApiFailure) {
-      const map = t.errors as Record<string, string>;
-      if (map[error.code]) return map[error.code];
-    }
-    return formatFailure(error, locale);
-  }
-
-  async function sendFile(
+  async function send(
     action: "preview" | "commit",
-    mappingOverride?: Partial<Record<ImportColumn, string>>,
+    override?: Partial<Record<ImportColumn, string>>,
   ) {
-    if (!file || !companyId) return;
+    if (!file || !company) return null;
     setBusy(true);
-    setFeedback("");
+    setError(null);
     try {
       const headers: Record<string, string> = {
         "Content-Type": file.type || "application/octet-stream",
         "X-Import-Action": action,
-        "X-Company-Id": companyId,
+        "X-Company-Id": company,
         "X-File-Name": encodeURIComponent(file.name),
       };
-      const effectiveMapping = mappingOverride ?? mapping;
-      if (Object.keys(effectiveMapping).length > 0) {
+      const effective = override ?? mapping;
+      if (Object.keys(effective).length > 0)
         headers["X-Column-Mapping"] = encodeURIComponent(
-          JSON.stringify(effectiveMapping),
+          JSON.stringify(effective),
         );
-      }
       if (action === "commit") {
         headers["X-Idempotency-Key"] = idempotencyKey;
         headers["X-Acknowledge-Duplicates"] = acknowledge ? "1" : "0";
@@ -139,28 +346,20 @@ export function ImportsView({ locale }: { locale: Locale }) {
         throw new ApiFailure(body.code ?? "FAILED");
       }
       if (action === "preview") {
-        const nextPreview = body as ImportPreviewResult;
-        setPreview(nextPreview);
-        setMapping(nextPreview.mapping);
-      } else {
-        const committed = body as { transactionIds: string[] };
-        await loadInitial();
-        setFeedback(t.committedSuccess);
-        if (committed.transactionIds.length === 1) {
-          window.location.assign(
-            `/${locale}/app/transactions/${committed.transactionIds[0]}`,
-          );
-          return;
-        }
+        const next = body as ImportPreviewResult;
+        setPreview(next);
+        setMapping(next.mapping);
       }
-    } catch (error) {
-      setFeedback(formatImportFailure(error));
+      return body;
+    } catch (failure) {
+      setError(importError(failure, locale));
+      return null;
     } finally {
       setBusy(false);
     }
   }
 
-  function downloadErrorCsv() {
+  function downloadErrors() {
     if (!preview) return;
     const blob = new Blob([preview.errorReportCsv], {
       type: "text/csv;charset=utf-8",
@@ -173,369 +372,435 @@ export function ImportsView({ locale }: { locale: Locale }) {
     URL.revokeObjectURL(url);
   }
 
-  if (noWorkspace) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-3xl font-semibold">{t.title}</h1>
-        <p>{acc.noWorkspace}</p>
-        <Link className="underline" href={`/${locale}/app/settings`}>
-          {site.manageWorkspace}
-        </Link>
-      </div>
-    );
-  }
-  if (!role) return <Skeleton className="h-48 w-full" />;
-  const canPrepare = can(role, "draft.prepare");
-
-  return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold">{t.title}</h1>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          {t.intro}
+  const upload = (
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">{t.intro}</p>
+      {error && (
+        <Notice tone="strong" role="alert">
+          {error}
+        </Notice>
+      )}
+      <FieldGroup>
+        <FormField label={t.selectCompany} required>
+          <Combobox
+            value={company}
+            onChange={(value) => setCompanyId(value)}
+            options={companies.map((c) => ({ value: c.id, label: c.name }))}
+            labels={labels}
+          />
+        </FormField>
+        <FormField
+          label={t.selectFile}
+          required
+          help=".csv / .xlsx · ≤ 2 MB · ≤ 200"
+        >
+          <input
+            type="file"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={(e) => {
+              reset();
+              setFile(e.target.files?.[0] ?? null);
+            }}
+            className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-border-strong file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium"
+          />
+        </FormField>
+      </FieldGroup>
+      <div className="space-y-3 rounded-lg border bg-surface-2 p-4">
+        <p className="text-sm font-semibold">{t.templatesTitle}</p>
+        <p className="text-xs leading-5 text-muted-foreground">
+          {t.templatesBody}
         </p>
-      </header>
-      <TrialStrip locale={locale} />
-      <section className="space-y-4 rounded-lg border p-5">
-        <h2 className="text-lg font-semibold">{t.templatesTitle}</h2>
-        <p className="text-sm text-muted-foreground">{t.templatesBody}</p>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="block space-y-2 text-sm font-medium">
-            <span>{intake.taxFamily}</span>
-            <select
-              value={templateFamily}
-              onChange={(e) =>
-                setTemplateFamily(
-                  e.target.value as (typeof intakeFamilies)[number],
-                )
-              }
-              className="min-h-11 rounded-md border bg-background px-3"
-            >
-              {intakeFamilies.map((f) => (
-                <option key={f} value={f}>
-                  {intake.families[f]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Button asChild variant="outline">
-            <a
-              href={`/api/imports/template?format=csv&family=${templateFamily}`}
-            >
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-56 flex-1">
+            <Combobox
+              aria-label={intake.taxFamily}
+              value={family}
+              onChange={(value) => value && setFamily(value)}
+              options={intakeFamilies.map((f) => ({
+                value: f,
+                label: intake.families[f],
+              }))}
+              labels={labels}
+            />
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <a href={`/api/imports/template?format=csv&family=${family}`}>
+              <Download aria-hidden="true" />
               {t.downloadCsv}
             </a>
           </Button>
-          <Button asChild variant="outline">
-            <a
-              href={`/api/imports/template?format=xlsx&family=${templateFamily}`}
-            >
+          <Button asChild variant="outline" size="sm">
+            <a href={`/api/imports/template?format=xlsx&family=${family}`}>
+              <Download aria-hidden="true" />
               {t.downloadXlsx}
             </a>
           </Button>
         </div>
-      </section>
+      </div>
+    </div>
+  );
 
-      {feedback && (
-        <p role="alert" className="rounded-md border p-3 text-sm">
-          {feedback}
-        </p>
+  const review = preview && (
+    <div className="space-y-6">
+      {error && (
+        <Notice tone="strong" role="alert">
+          {error}
+        </Notice>
       )}
-
-      {!canPrepare ? (
-        <p role="alert" className="rounded-md border p-5 text-sm">
-          {intake.preparerRequired}
-        </p>
-      ) : !companies.length || counterpartyCount === 0 ? (
-        <div className="space-y-4 rounded-md border p-5 text-sm">
-          <p>{intake.setupRequired}</p>
-          <div className="flex flex-wrap gap-4">
-            <Link className="underline" href={`/${locale}/app/companies`}>
-              {site.companies}
-            </Link>
-            <Link className="underline" href={`/${locale}/app/counterparties`}>
-              {site.counterparties}
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <section className="space-y-6 rounded-lg border p-5">
-          <h2 className="text-lg font-semibold">{t.uploadTitle}</h2>
-          <form
-            className="space-y-4"
-            onSubmit={(event: FormEvent<HTMLFormElement>) => {
-              event.preventDefault();
-              void sendFile("preview", {});
-            }}
+      <FieldGroup title={t.mappingTitle} columns={2}>
+        {importColumns.map((col) => (
+          <FormField
+            key={col}
+            label={t.columns[col]}
+            required={requiredImportColumns.includes(col)}
+            layout="inline"
           >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block space-y-2 text-sm font-medium">
-                <span>{t.selectCompany}</span>
-                <select
-                  value={companyId}
-                  onChange={(e) => {
-                    setCompanyId(e.target.value);
-                    setIdempotencyKey(crypto.randomUUID());
-                  }}
-                  className="min-h-11 w-full rounded-md border bg-background px-3"
-                >
-                  {companies.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block space-y-2 text-sm font-medium">
-                <span>{t.selectFile}</span>
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  required
-                  onChange={(e) => {
-                    setFile(e.target.files?.[0] ?? null);
-                    setPreview(null);
-                    setMapping({});
-                    setAcknowledge(false);
-                    setIdempotencyKey(crypto.randomUUID());
-                  }}
-                  className="block w-full text-sm"
-                />
-              </label>
-            </div>
-            <Submit busy={busy}>{t.previewButton}</Submit>
-          </form>
-
-          {preview && (
-            <div className="space-y-6 border-t pt-6">
-              <div className="space-y-4">
-                <h3 className="font-semibold">{t.mappingTitle}</h3>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {importColumns.map((col) => (
-                    <label
-                      key={col}
-                      className="block space-y-1 text-xs font-medium"
-                    >
-                      <span>{t.columns[col]}</span>
-                      <select
-                        value={mapping[col] ?? ""}
-                        onChange={(e) => {
-                          const next = { ...mapping };
-                          if (e.target.value) next[col] = e.target.value;
-                          else delete next[col];
-                          setMapping(next);
-                          setIdempotencyKey(crypto.randomUUID());
-                        }}
-                        className="min-h-10 w-full rounded-md border bg-background px-2 text-xs"
-                      >
-                        <option value="">{t.unmapped}</option>
-                        {preview.headers.map((h) => (
-                          <option key={h} value={h}>
-                            {h}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => void sendFile("preview", mapping)}
-                >
-                  {t.repreviewButton}
-                </Button>
-              </div>
-
-              <div className="space-y-3 rounded-md border bg-muted/30 p-4 text-sm">
-                <h3 className="font-semibold">{t.summaryTitle}</h3>
-                <div className="flex flex-wrap gap-6 font-mono text-xs">
-                  <span>
-                    {t.totalRows}: {preview.totalRows}
-                  </span>
-                  <span>
-                    {t.validRows}: {preview.validRows}
-                  </span>
-                  <span>
-                    {t.invalidRows}: {preview.invalidRows}
-                  </span>
-                  <span>
-                    {t.duplicateRows}: {preview.duplicateRows}
-                  </span>
-                </div>
-                {preview.entitlement ? (
-                  <p className="rounded border bg-background p-3 text-xs leading-6">
-                    {t.entitledNotice}
-                  </p>
-                ) : (
-                  preview.validRows > 1 && (
-                    <p
-                      role="alert"
-                      className="rounded border bg-background p-3 text-xs leading-6"
-                    >
-                      {t.trialSingleRowNotice}
-                    </p>
-                  )
-                )}
-                {(preview.invalidRows > 0 || preview.duplicateRows > 0) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={downloadErrorCsv}
-                  >
-                    {t.downloadErrorReport}
-                  </Button>
-                )}
-              </div>
-
-              <div className="overflow-x-auto rounded-lg border">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b bg-muted/40">
-                    <tr>
-                      <th className="p-3 font-semibold">{t.rowNumber}</th>
-                      <th className="p-3 font-semibold">{t.rowStatus}</th>
-                      <th className="p-3 font-semibold">
-                        {intake.invoiceNumber}
-                      </th>
-                      <th className="p-3 font-semibold">
-                        {intake.counterparty}
-                      </th>
-                      <th className="p-3 font-semibold">
-                        {intake.totalAmount}
-                      </th>
-                      <th className="p-3 font-semibold">{t.issuesColumn}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {preview.rows.map((row) => (
-                      <tr key={row.rowNumber}>
-                        <td className="p-3 font-mono">{row.rowNumber}</td>
-                        <td className="p-3">
-                          <StatusBadge active={row.status === "VALID"}>
-                            {row.status === "VALID" ? t.valid : t.invalid}
-                          </StatusBadge>
-                        </td>
-                        <td className="p-3 font-mono">
-                          {row.invoiceNumber || "—"}
-                        </td>
-                        <td className="p-3">{row.counterpartyName || "—"}</td>
-                        <td className="p-3 font-mono">
-                          {row.totalAmount
-                            ? formatAmountString(row.totalAmount, locale)
-                            : "—"}
-                        </td>
-                        <td className="p-3">
-                          {row.issues.length === 0 &&
-                          row.duplicates.length === 0 ? (
-                            <span className="text-muted-foreground">
-                              {t.noIssues}
-                            </span>
-                          ) : (
-                            <ul className="space-y-1">
-                              {row.issues.map((issue, idx) => (
-                                <li key={idx}>
-                                  <span className="font-mono">
-                                    {issue.column}:
-                                  </span>{" "}
-                                  {t.issueCodes[issue.code]}
-                                </li>
-                              ))}
-                              {row.duplicates.map((dup) => (
-                                <li key={dup.id}>
-                                  {intake.duplicateBadge}: {dup.invoiceNumber} (
-                                  {dup.documentDate})
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {preview.duplicateRows > 0 && (
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={acknowledge}
-                    onChange={(e) => setAcknowledge(e.target.checked)}
-                  />
-                  <span>{t.acknowledgeDuplicates}</span>
-                </label>
-              )}
-
-              <Button
-                type="button"
-                disabled={
-                  busy ||
-                  !preview.eligibleToCommit ||
-                  (preview.duplicateRows > 0 && !acknowledge)
-                }
-                onClick={() => void sendFile("commit", mapping)}
+            <Combobox
+              value={mapping[col] ?? null}
+              onChange={(value) =>
+                setMapping((m) => {
+                  const next = { ...m };
+                  if (value) next[col] = value;
+                  else delete next[col];
+                  return next;
+                })
+              }
+              options={preview.headers.map((h) => ({ value: h, label: h }))}
+              clearable={!requiredImportColumns.includes(col)}
+              labels={{ ...labels, placeholder: t.unmapped }}
+            />
+          </FormField>
+        ))}
+      </FieldGroup>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={busy}
+        onClick={() => void send("preview", mapping)}
+      >
+        <RefreshCw aria-hidden="true" />
+        {t.repreviewButton}
+      </Button>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          [t.totalRows, preview.totalRows],
+          [t.validRows, preview.validRows],
+          [t.invalidRows, preview.invalidRows],
+          [t.duplicateRows, preview.duplicateRows],
+        ].map(([label, value]) => (
+          <div
+            key={String(label)}
+            className="rounded-lg border bg-surface-2 p-3"
+          >
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="mt-1 font-mono text-xl font-semibold">{value}</p>
+          </div>
+        ))}
+      </div>
+      {preview.entitlement ? (
+        <Notice>{t.entitledNotice}</Notice>
+      ) : (
+        preview.validRows > 1 && (
+          <Notice tone="warning" role="alert">
+            {t.trialSingleRowNotice}
+          </Notice>
+        )
+      )}
+      {preview.quotaBlockReason &&
+        t.errors[preview.quotaBlockReason as keyof typeof t.errors] && (
+          <Notice tone="strong" role="alert">
+            {t.errors[preview.quotaBlockReason as keyof typeof t.errors]}
+          </Notice>
+        )}
+      {(preview.invalidRows > 0 || preview.duplicateRows > 0) && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={downloadErrors}
+        >
+          <Download aria-hidden="true" />
+          {t.downloadErrorReport}
+        </Button>
+      )}
+      <div className="scroll-thin max-h-80 overflow-auto rounded-lg border">
+        <table className="w-full text-left text-xs">
+          <thead className="sticky top-0 bg-surface-2">
+            <tr className="border-b">
+              <th className="px-3 py-2 font-semibold">{t.rowNumber}</th>
+              <th className="px-3 py-2 font-semibold">{t.rowStatus}</th>
+              <th className="px-3 py-2 font-semibold">
+                {intake.invoiceNumber}
+              </th>
+              <th className="px-3 py-2 font-semibold">{intake.counterparty}</th>
+              <th className="px-3 py-2 text-right font-semibold">
+                {intake.totalAmount}
+              </th>
+              <th className="px-3 py-2 font-semibold">{t.issuesColumn}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {preview.rows.map((row) => (
+              <tr
+                key={row.rowNumber}
+                className="border-b last:border-b-0 align-top"
               >
-                {preview.entitlement ? t.commitButtonEntitled : t.commitButton}
-              </Button>
+                <td className="px-3 py-2 font-mono">{row.rowNumber}</td>
+                <td className="px-3 py-2">
+                  {row.status === "VALID" ? (
+                    <Badge tone="solid">{t.valid}</Badge>
+                  ) : (
+                    <Badge tone="muted">{t.invalid}</Badge>
+                  )}
+                </td>
+                <td className="px-3 py-2 font-mono">{row.invoiceNumber}</td>
+                <td className="px-3 py-2">{row.counterpartyName}</td>
+                <td className="px-3 py-2 text-right font-mono whitespace-nowrap">
+                  {row.totalAmount
+                    ? formatAmountString(row.totalAmount, locale)
+                    : "—"}
+                </td>
+                <td className="px-3 py-2">
+                  {row.issues.length === 0 && row.duplicates.length === 0 ? (
+                    <span className="text-muted-foreground">{t.noIssues}</span>
+                  ) : (
+                    <ul className="space-y-0.5">
+                      {row.issues.map((issue, i) => (
+                        <li key={i}>
+                          {t.columns[issue.column as ImportColumn] ??
+                            issue.column}
+                          :{" "}
+                          {t.issueCodes[
+                            issue.code as keyof typeof t.issueCodes
+                          ] ?? issue.code}
+                        </li>
+                      ))}
+                      {row.duplicates.map((d) => (
+                        <li key={d.id}>
+                          ⚠ {d.invoiceNumber} ({d.documentDate})
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {preview.duplicateRows > 0 && (
+        <Checkbox
+          label={t.acknowledgeDuplicates}
+          checked={acknowledge}
+          onChange={(e) => setAcknowledge(e.target.checked)}
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <Wizard
+      locale={locale}
+      open={open}
+      onClose={() => {
+        reset();
+        onClose();
+      }}
+      title={t.title}
+      size="xl"
+      busy={busy}
+      steps={[
+        {
+          id: "upload",
+          title: t.uploadTitle,
+          content: upload,
+          canContinue: Boolean(file && company),
+          onContinue: async () => Boolean(await send("preview")),
+        },
+        {
+          id: "review",
+          title: t.summaryTitle,
+          content: review,
+          canContinue: Boolean(
+            preview?.eligibleToCommit &&
+            (preview.duplicateRows === 0 || acknowledge),
+          ),
+        },
+      ]}
+      finishLabel={
+        preview?.entitlement ? t.commitButtonEntitled : t.commitButton
+      }
+      onFinish={async () => {
+        const result = (await send("commit")) as {
+          transactionIds: string[];
+        } | null;
+        if (!result) return;
+        toast.success(t.committedSuccess);
+        reset();
+        await onDone(result.transactionIds);
+      }}
+    />
+  );
+}
+
+export function ImportBatchForm({
+  locale,
+  batchId,
+}: {
+  locale: Locale;
+  batchId: string;
+}) {
+  const t = importMessages[locale];
+  const s = shellMessages[locale];
+  const intake = intakeMessages[locale];
+  const v = viewMessages[locale];
+  const router = useRouter();
+  const batch = useResource(
+    () =>
+      apiGet<BatchesPayload>(`/api/imports?id=${encodeURIComponent(batchId)}`),
+    [batchId],
+  );
+  const companies = useResource(() => apiGet<Companies>("/api/companies"));
+  const record = batch.data?.batches[0] ?? null;
+  const company = companies.data?.companies.find(
+    (c) => c.id === record?.companyId,
+  );
+  if (batch.noWorkspace) return <NoWorkspace locale={locale} />;
+  const notFound = batch.data !== null && !record;
+  return (
+    <FormPage
+      locale={locale}
+      model="imports"
+      mode="read"
+      breadcrumbs={[
+        { label: s.menuImports, href: `/${locale}/app/imports` },
+        { label: record?.fileName ?? (notFound ? v.notFound : "…") },
+      ]}
+      recordId={batchId}
+      hrefFor={(id) => `/${locale}/app/imports/${id}`}
+      loading={batch.data === null}
+    >
+      {notFound || !record ? (
+        <p role="alert" className="text-sm">
+          {v.notFound}
+        </p>
+      ) : (
+        <div className="space-y-8">
+          <SheetTitle
+            label={t.historyTitle}
+            aside={<Badge tone="outline">{record.format}</Badge>}
+          >
+            {record.fileName}
+          </SheetTitle>
+          <div className="grid gap-x-12 gap-y-6 lg:grid-cols-2">
+            <FieldGroup title={v.information}>
+              <FormField label={intake.company} layout="inline">
+                <ReadValue>
+                  {company ? (
+                    <Link
+                      className="hover:underline"
+                      href={`/${locale}/app/companies/${company.id}`}
+                    >
+                      {company.name}
+                    </Link>
+                  ) : null}
+                </ReadValue>
+              </FormField>
+              <FormField label={v.from} layout="inline">
+                <ReadValue>
+                  {formatDate(new Date(record.createdAt), locale)}
+                </ReadValue>
+              </FormField>
+              <FormField label={intake.history} layout="inline">
+                <ReadValue>{record.createdBy}</ReadValue>
+              </FormField>
+              <FormField label={t.fileHash} layout="inline">
+                <ReadValue mono className="text-xs break-all">
+                  {record.fileSha256}
+                </ReadValue>
+              </FormField>
+            </FieldGroup>
+            <FieldGroup title={t.summaryTitle}>
+              <FormField label={t.totalRows} layout="inline">
+                <ReadValue>{record.totalRows}</ReadValue>
+              </FormField>
+              <FormField label={t.validRows} layout="inline">
+                <ReadValue>{record.validRows}</ReadValue>
+              </FormField>
+              <FormField label={t.invalidRows} layout="inline">
+                <ReadValue>{record.invalidRows}</ReadValue>
+              </FormField>
+              <FormField label={t.createdCount} layout="inline">
+                <ReadValue>{record.createdCount}</ReadValue>
+              </FormField>
+            </FieldGroup>
+          </div>
+          {record.rowSummary && (
+            <div className="scroll-thin overflow-x-auto rounded-lg border">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-surface-2 text-xs text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="px-3 py-2">{t.rowNumber}</th>
+                    <th className="px-3 py-2">{t.rowStatus}</th>
+                    <th className="px-3 py-2">{intake.invoiceNumber}</th>
+                    <th className="px-3 py-2">{intake.counterparty}</th>
+                    <th className="px-3 py-2 text-right">
+                      {intake.totalAmount}
+                    </th>
+                    <th className="px-3 py-2">{t.issuesColumn}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {record.rowSummary.map((row) => (
+                    <tr
+                      key={row.rowNumber}
+                      className="border-b align-top last:border-b-0"
+                    >
+                      <td className="px-3 py-2 font-mono text-xs">
+                        {row.rowNumber}
+                      </td>
+                      <td className="px-3 py-2">
+                        {row.status === "VALID" ? (
+                          <Badge tone="solid">{t.valid}</Badge>
+                        ) : (
+                          <Badge tone="muted">{t.invalid}</Badge>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 font-mono">
+                        {row.invoiceNumber}
+                      </td>
+                      <td className="px-3 py-2">{row.counterpartyName}</td>
+                      <td className="px-3 py-2 text-right font-mono whitespace-nowrap">
+                        {row.totalAmount
+                          ? formatAmountString(row.totalAmount, locale)
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        {row.issues
+                          .map(
+                            (i) =>
+                              `${t.columns[i.column as ImportColumn] ?? i.column}: ${t.issueCodes[i.code as keyof typeof t.issueCodes] ?? i.code}`,
+                          )
+                          .join(" · ") || t.noIssues}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-        </section>
+          {record.transactionIds.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push(`/${locale}/app/transactions`)}
+            >
+              {s.menuTransactions} ({record.transactionIds.length})
+            </Button>
+          )}
+        </div>
       )}
-
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">{t.historyTitle}</h2>
-        {!batches.length ? (
-          <p className="rounded-md border p-5 text-sm text-muted-foreground">
-            {t.noHistory}
-          </p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b bg-muted/40">
-                <tr>
-                  <th className="p-3 font-semibold">{intake.documentDate}</th>
-                  <th className="p-3 font-semibold">File</th>
-                  <th className="p-3 font-semibold">{t.totalRows}</th>
-                  <th className="p-3 font-semibold">{t.validRows}</th>
-                  <th className="p-3 font-semibold">{t.invalidRows}</th>
-                  <th className="p-3 font-semibold">{t.createdCount}</th>
-                  <th className="p-3 font-semibold">{t.fileHash}</th>
-                  <th className="p-3 font-semibold" />
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {batches.map((b) => (
-                  <tr key={b.id}>
-                    <td className="p-3 font-mono">
-                      {formatDate(new Date(b.createdAt), locale)}
-                    </td>
-                    <td className="p-3 font-medium">
-                      {b.fileName} ({b.format})
-                    </td>
-                    <td className="p-3 font-mono">{b.totalRows}</td>
-                    <td className="p-3 font-mono">{b.validRows}</td>
-                    <td className="p-3 font-mono">{b.invalidRows}</td>
-                    <td className="p-3 font-mono">{b.createdCount}</td>
-                    <td className="p-3 font-mono">
-                      {b.fileSha256.slice(0, 12)}…
-                    </td>
-                    <td className="p-3">
-                      {b.transactionIds[0] && (
-                        <Link
-                          className="underline"
-                          href={`/${locale}/app/transactions/${b.transactionIds[0]}`}
-                        >
-                          {intake.openDetail}
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </div>
+    </FormPage>
   );
 }

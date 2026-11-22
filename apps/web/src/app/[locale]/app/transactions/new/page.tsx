@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/messages";
-import { NewTransactionView } from "@/components/intake/transaction-new";
+import { TransactionForm } from "@/components/intake/transaction-form";
 export default async function Page({
   params,
 }: {
@@ -8,5 +8,5 @@ export default async function Page({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  return <NewTransactionView locale={locale} />;
+  return <TransactionForm locale={locale} transactionId={null} />;
 }

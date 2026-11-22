@@ -11,14 +11,33 @@ export async function GET(request: Request) {
     const sessionId = await requireSessionId(request, false);
     const url = new URL(request.url);
     return jsonResponse(
-      await getIntake().listTransactions(sessionId, {
-        q: url.searchParams.get("q") ?? undefined,
-        status: url.searchParams.get("status") ?? undefined,
-        taxFamily: url.searchParams.get("taxFamily") ?? undefined,
-        sort: url.searchParams.get("sort") ?? undefined,
-        page: url.searchParams.get("page") ?? undefined,
-        pageSize: url.searchParams.get("pageSize") ?? undefined,
-      }),
+      await getIntake().listTransactions(
+        sessionId,
+        Object.fromEntries(
+          [
+            "q",
+            "status",
+            "taxFamily",
+            "statuses",
+            "excludeStatuses",
+            "families",
+            "sources",
+            "companyIds",
+            "counterpartyIds",
+            "invoice",
+            "counterparty",
+            "dateFrom",
+            "dateTo",
+            "taxPeriod",
+            "taxPeriods",
+            "sort",
+            "page",
+            "pageSize",
+          ]
+            .map((key) => [key, url.searchParams.get(key) ?? undefined])
+            .filter(([, value]) => value !== undefined),
+        ),
+      ),
     );
   } catch (error) {
     return intakeErrorResponse(error);

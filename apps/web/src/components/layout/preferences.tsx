@@ -1,56 +1,112 @@
 "use client";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { Languages, Moon, Sun } from "lucide-react";
 import type { Locale } from "@/i18n/messages";
 import { siteMessages } from "@/i18n/site";
-import { Button } from "@/components/ui/button";
-export function LocaleSwitch({ locale }: { locale: Locale }) {
-  const pathname = usePathname();
-  const other = locale === "id" ? "en" : "id";
-  const destination = pathname.replace(/^\/(id|en)(?=\/|$)/, `/${other}`);
-  return (
-    <Link
-      className="inline-flex min-h-11 items-center px-2 text-sm"
-      href={destination}
-      lang={other}
-      hrefLang={other}
-    >
-      {other === "en" ? "English" : "Bahasa Indonesia"}
-    </Link>
+import {
+  ensureTheme,
+  getTheme,
+  setTheme,
+  subscribeTheme,
+  type Theme,
+} from "@/lib/theme";
+import { cn } from "@/lib/utils";
+import { localeHref } from "@/lib/locale-href";
+
+/** Keeps <html data-theme> in place for the whole session. */
+export function ThemeGuard() {
+  useEffect(() => {
+    ensureTheme();
+    return subscribeTheme(() => undefined);
+  }, []);
+  return null;
+}
+
+function useTheme(): Theme | null {
+  return useSyncExternalStore(
+    subscribeTheme,
+    () => getTheme(),
+    () => null,
   );
 }
-export function ThemeToggle({ locale }: { locale: Locale }) {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const stored = document.documentElement.dataset.theme;
-    setDark(
-      stored
-        ? stored === "dark"
-        : window.matchMedia("(prefers-color-scheme: dark)").matches,
-    );
-  }, []);
-  function toggle() {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.dataset.theme = next ? "dark" : "light";
-    try {
-      localStorage.setItem("serentax-theme", next ? "dark" : "light");
-    } catch {
-      /* Theme still applies when browser storage is unavailable. */
-    }
-  }
-  const t = siteMessages[locale];
+
+/**
+ * Switching language swaps the root layout (<html lang>). A full navigation
+ * re-runs the theme boot script before paint and keeps query string + hash,
+ * so neither the theme nor active filters are lost.
+ */
+export function LocaleSwitch({
+  locale,
+  className,
+  compact = false,
+}: {
+  locale: Locale;
+  className?: string;
+  compact?: boolean;
+}) {
+  const pathname = usePathname();
+  const other: Locale = locale === "id" ? "en" : "id";
+  const label = other === "en" ? "English" : "Bahasa Indonesia";
   return (
-    <Button
-      variant="outline"
-      onClick={toggle}
-      aria-label={t.theme}
-      aria-pressed={dark}
-      title={dark ? t.light : t.dark}
-      className="w-11 px-0"
+    <a
+      href={localeHref(pathname, other)}
+      lang={other}
+      hrefLang={other}
+      aria-label={compact ? label : undefined}
+      title={label}
+      onClick={(event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+        event.preventDefault();
+        const { pathname: path, search, hash } = window.location;
+        window.location.assign(`${localeHref(path, other)}${search}${hash}`);
+      }}
+      className={cn(
+        "inline-flex min-h-9 items-center gap-2 rounded-md px-2.5 text-sm font-medium transition-colors",
+        className,
+      )}
     >
-      <span aria-hidden="true">{dark ? "☀" : "◐"}</span>
-    </Button>
+      <Languages aria-hidden="true" className="size-4" />
+      {compact ? (
+        <span className="text-xs font-semibold uppercase">{other}</span>
+      ) : (
+        <span>{label}</span>
+      )}
+    </a>
+  );
+}
+
+export function ThemeToggle({
+  locale,
+  className,
+}: {
+  locale: Locale;
+  className?: string;
+}) {
+  const theme = useTheme();
+  const t = siteMessages[locale];
+  const dark = theme === "dark";
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(dark ? "light" : "dark")}
+      aria-label={t.theme}
+      aria-pressed={theme === null ? undefined : dark}
+      title={dark ? t.light : t.dark}
+      className={cn(
+        "inline-flex size-9 items-center justify-center rounded-md transition-colors",
+        className,
+      )}
+    >
+      {/* Both icons render identically on server and client; CSS picks one. */}
+      <Sun
+        aria-hidden="true"
+        className="hidden size-4 [[data-theme=dark]_&]:block"
+      />
+      <Moon
+        aria-hidden="true"
+        className="block size-4 [[data-theme=dark]_&]:hidden"
+      />
+    </button>
   );
 }

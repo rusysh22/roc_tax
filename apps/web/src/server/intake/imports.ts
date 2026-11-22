@@ -866,7 +866,8 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
     };
   }
 
-  async function listBatches(sessionId: string) {
+  /** Import history; with `batchId` returns that batch including row summary. */
+  async function listBatches(sessionId: string, batchId?: string) {
     const initial = await requireActor(db, sessionId);
     if (!initial.activeOrganizationId) throw new AccessError("NO_WORKSPACE");
     const organizationId = initial.activeOrganizationId;
@@ -879,10 +880,15 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
         organizationId,
       );
       const batches = await tx.importBatch.findMany({
-        where: { organizationId },
+        where: { organizationId, ...(batchId ? { id: batchId } : {}) },
         orderBy: { createdAt: "desc" },
-        take: 50,
+        take: batchId ? 1 : 200,
       });
+      const creators = await tx.user.findMany({
+        where: { id: { in: [...new Set(batches.map((b) => b.createdBy))] } },
+        select: { id: true, name: true },
+      });
+      const creatorName = new Map(creators.map((u) => [u.id, u.name]));
       return {
         role: membership.role,
         batches: batches.map((b) => ({
@@ -898,6 +904,8 @@ export function importBatchService(db: PrismaClient, crypto: TaxCrypto) {
           createdCount: b.createdCount,
           transactionIds: b.transactionIds as string[],
           createdAt: b.createdAt.toISOString(),
+          createdBy: creatorName.get(b.createdBy) ?? null,
+          ...(batchId ? { rowSummary: b.rowSummary } : {}),
         })),
       };
     });

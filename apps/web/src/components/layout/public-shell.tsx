@@ -24,21 +24,21 @@ export function PublicShell({
       <a href="#content" className="skip-link">
         {messages[locale].skip}
       </a>
-      <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-4 sm:px-8">
+      <header className="sticky top-0 z-40 border-b bg-surface/85 backdrop-blur supports-[backdrop-filter]:bg-surface/75">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 sm:px-8">
           <Link
             href={`/${locale}`}
-            className="text-2xl font-semibold tracking-tighter"
+            className="text-xl font-bold tracking-tight"
           >
             SerenTax<span aria-hidden="true">.</span>
           </Link>
           <nav
             aria-label={t.navigation}
-            className="hidden items-center gap-6 text-sm lg:flex"
+            className="hidden items-center gap-1 text-sm lg:flex"
           >
             {links.map((link) => (
               <Link
-                className="py-3 text-muted-foreground hover:text-foreground"
+                className="rounded-md px-3 py-2 font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 key={link.path}
                 href={`/${locale}/${link.path}`}
               >
@@ -47,8 +47,8 @@ export function PublicShell({
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <LocaleSwitch locale={locale} />
-            <ThemeToggle locale={locale} />
+            <LocaleSwitch locale={locale} className="hover:bg-muted" />
+            <ThemeToggle locale={locale} className="hover:bg-muted" />
             <Button asChild className="hidden sm:inline-flex">
               <Link href={`/${locale}/auth/sign-in`}>
                 {accountMessages[locale].signIn}
@@ -82,12 +82,12 @@ export function PublicShell({
       <main id="content" tabIndex={-1}>
         {children}
       </main>
-      <footer className="border-t bg-muted/40">
+      <footer className="border-t bg-surface">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1fr_1fr]">
           <div>
             <Link
               href={`/${locale}`}
-              className="text-xl font-semibold tracking-tight"
+              className="text-lg font-bold tracking-tight"
             >
               SerenTax.
             </Link>

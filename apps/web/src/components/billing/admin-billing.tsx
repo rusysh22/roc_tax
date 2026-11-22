@@ -148,7 +148,7 @@ export function AdminBillingView({ locale }: { locale: Locale }) {
   return (
     <div className="max-w-4xl space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold">{t.adminTitle}</h1>
+        <h1 className="text-2xl font-semibold">{t.adminTitle}</h1>
         <p className="text-sm leading-6 text-muted-foreground">
           {t.adminIntro}
         </p>
@@ -176,7 +176,7 @@ export function AdminBillingView({ locale }: { locale: Locale }) {
               onChange={(e) =>
                 setAdapterMode(e.target.value as BillingAdapterMode)
               }
-              className="min-h-11 rounded-md border bg-background px-3 text-sm"
+              className="field-control w-auto"
             >
               {billingAdapterModes.map((m) => (
                 <option key={m} value={m}>
