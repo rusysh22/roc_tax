@@ -553,6 +553,16 @@ export function reportsService(db: PrismaClient) {
           },
         }),
       ]);
+      const jobOrgNames = new Map(
+        (
+          await tx.organization.findMany({
+            where: {
+              id: { in: [...new Set(jobs.map((j) => j.organizationId))] },
+            },
+            select: { id: true, name: true },
+          })
+        ).map((o) => [o.id, o.name]),
+      );
 
       return {
         platformHealth: {
@@ -617,6 +627,7 @@ export function reportsService(db: PrismaClient) {
         jobs: jobs.map((j) => ({
           id: j.id,
           organizationId: j.organizationId,
+          organizationName: jobOrgNames.get(j.organizationId) ?? null,
           providerSlug: j.providerSlug,
           adapterKey: j.adapterKey,
           status: j.status,

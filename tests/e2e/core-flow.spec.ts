@@ -157,9 +157,13 @@ test("draft → evaluate → submit → approve → BPPU XML export → Coretax 
     .click();
   await preparer.waitForURL(/\/id\/app\/exports\/[^/]+$/);
 
-  const download = preparer.getByRole("link", { name: "Unduh XML" });
-  const href = await download.getAttribute("href");
-  const xml = await (await preparer.request.get(href!)).text();
+  const [download] = await Promise.all([
+    preparer.waitForEvent("download"),
+    preparer.getByRole("button", { name: "Unduh XML" }).click(),
+  ]);
+  const { readFile } = await import("node:fs/promises");
+  const xml = await readFile((await download.path())!, "utf-8");
+  expect(download.suggestedFilename()).toMatch(/\.xml$/);
   expect(xml).toContain("<BpuBulk");
   expect(xml).toContain(invoice);
   expect(xml).toContain("<TaxObjectCode>DEMO-42-SEWA-TB</TaxObjectCode>");

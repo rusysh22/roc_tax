@@ -630,6 +630,35 @@ export function ExportBatchForm({
   const itemsPage = usePaged(batch?.items ?? []);
   const canExport = data ? can(data.role, "tax.export") : false;
   const [dialog, setDialog] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  /** Downloads the XML file; failures show a friendly toast instead of raw JSON. */
+  async function downloadXml(id: string, fileName: string) {
+    setDownloading(true);
+    try {
+      const response = await fetch(`/api/exports/${id}/download`, {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as {
+          code?: string;
+        };
+        throw new ApiFailure(body.code ?? "FAILED");
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (failure) {
+      toast.error(exportError(failure, locale));
+    } finally {
+      setDownloading(false);
+    }
+  }
   const [outcome, setOutcome] =
     useState<CoretaxOutcomeStatus>("CORETAX_SUBMITTED");
   const [reference, setReference] = useState("");
@@ -686,11 +715,13 @@ export function ExportBatchForm({
             label={t.recordOutcomeTitle}
             buttons={
               <>
-                <Button asChild>
-                  <a href={`/api/exports/${batch.id}/download`}>
-                    <Download aria-hidden="true" />
-                    <span>{t.downloadXml}</span>
-                  </a>
+                <Button
+                  type="button"
+                  disabled={downloading}
+                  onClick={() => void downloadXml(batch.id, batch.fileName)}
+                >
+                  <Download aria-hidden="true" />
+                  <span>{t.downloadXml}</span>
                 </Button>
                 {canExport && (
                   <Button

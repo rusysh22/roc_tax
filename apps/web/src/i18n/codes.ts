@@ -1359,6 +1359,67 @@ export const codeRegistry = {
       ["External AI OCR", "May use an approved external AI OCR provider."],
     ),
   },
+  ocrError: {
+    OCR_NOT_CONFIGURED: c(
+      "red",
+      [
+        "Penyedia belum dikonfigurasi",
+        "Adaptor atau endpoint penyedia belum diatur dengan benar.",
+      ],
+      [
+        "Provider not configured",
+        "The provider adapter or endpoint is not set up correctly.",
+      ],
+    ),
+    OCR_PROVIDER_DISABLED: c(
+      "gray",
+      ["OCR dinonaktifkan", "Ruang kerja memakai input manual."],
+      ["OCR disabled", "The workspace uses manual entry."],
+    ),
+    OCR_PROVIDER_ERROR: c(
+      "amber",
+      [
+        "Gangguan di penyedia",
+        "Penyedia mengembalikan galat; job dicoba ulang bila sementara.",
+      ],
+      [
+        "Provider error",
+        "The provider returned an error; temporary failures are retried.",
+      ],
+    ),
+    OCR_TIMEOUT: c(
+      "amber",
+      ["Waktu habis", "Penyedia terlalu lama merespons; job dicoba ulang."],
+      ["Timed out", "The provider took too long; the job is retried."],
+    ),
+    OCR_INVALID_DOCUMENT: c(
+      "red",
+      [
+        "Dokumen tidak bisa dibaca",
+        "Berkas rusak atau jenisnya tidak didukung.",
+      ],
+      [
+        "Unreadable document",
+        "The file is damaged or its type is not supported.",
+      ],
+    ),
+    OCR_PAGE_LIMIT: c(
+      "red",
+      ["Terlalu banyak halaman", "Dokumen melebihi batas halaman per dokumen."],
+      ["Too many pages", "The document exceeds the page limit per document."],
+    ),
+    OCR_SECRET_MISSING: c(
+      "red",
+      [
+        "Kunci API belum tersedia",
+        "Variabel rahasia server untuk penyedia belum diisi atau ditolak.",
+      ],
+      [
+        "API key missing",
+        "The provider secret variable is not set or was rejected.",
+      ],
+    ),
+  },
   roundingMode: {
     HALF_UP: c(
       "gray",

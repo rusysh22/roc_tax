@@ -336,6 +336,14 @@ describe("Coretax XML template registry & BPPU exporter integration on PostgreSQ
       exporter.downloadExport(outsider.sessionId, exportV1.batch.id),
     ).rejects.toThrow("NOT_FOUND");
 
+    // Workspace Owners may download generated XML (they already can export
+    // all workspace data), even though they cannot generate XML.
+    const ownerCopy = await exporter.downloadExport(
+      owner.sessionId,
+      exportV1.batch.id,
+    );
+    expect(ownerCopy.xmlSha256).toBe(downloaded.xmlSha256);
+
     // Regenerate creates immutable exportVersion=2 without overwriting v1.
     const exportV2 = await exporter.generateExport(approver.sessionId, {
       companyId: company.id,

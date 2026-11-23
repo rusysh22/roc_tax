@@ -21,7 +21,7 @@ import { identityHint } from "../../lib/intake/identity";
 import { allTaxFamilies } from "../../lib/intake/tax-rules";
 import type { TaxCrypto } from "../intake/crypto";
 import type { DocumentStorage } from "../intake/storage";
-import { AccessError, type Permission } from "../workspaces/policy";
+import { AccessError, can, type Permission } from "../workspaces/policy";
 import { requireActor, requireMembership } from "../workspaces/service";
 import { assertWorkspaceWritable } from "../lifecycle/state";
 
@@ -891,11 +891,21 @@ export function exportService(
     }
   }
 
+  /**
+   * Download an already generated XML file. Tax roles (tax.export) and
+   * workspace Owners/Admins (team.manage, who can already export all
+   * workspace data) may download; generating new XML stays tax-role only.
+   */
   async function downloadExport(sessionId: string, batchId: string) {
     return withActive(
       sessionId,
-      "tax.export",
+      undefined,
       async (tx, { session, membership }) => {
+        if (
+          !can(membership.role, "tax.export") &&
+          !can(membership.role, "team.manage")
+        )
+          throw new AccessError("FORBIDDEN");
         const organizationId = membership.organizationId;
         const batch = await tx.xmlExportBatch.findFirst({
           where: { id: batchId, organizationId },

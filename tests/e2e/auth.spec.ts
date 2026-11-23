@@ -396,7 +396,7 @@ test("verified signup, profile, workspace invitation and password recovery throu
     await memberPage.goto("/en/app/settings/ocr");
     await expect(
       memberPage.getByRole("heading", {
-        name: "Workspace OCR configuration",
+        name: "OCR settings",
         exact: true,
       }),
     ).toBeVisible();
